@@ -34,12 +34,12 @@ const TYPES = {
 };
 
 const BUILDINGS = [
-  { key: "1", type: TYPES.ROAD, name: "Road", cost: 7 },
-  { key: "2", type: TYPES.POWER, name: "Battery Relay", cost: 80 },
-  { key: "3", type: TYPES.DROPPER, name: "Money Dropper", cost: 60 },
-  { key: "4", type: TYPES.CORE, name: "Fusion Core", cost: 95 },
-  { key: "5", type: TYPES.CONVEYOR, name: "Conveyor", cost: 45 },
-  { key: "6", type: TYPES.BANK, name: "Credit Bank", cost: 140 }
+  { key: "1", type: TYPES.ROAD, name: "Road", cost: 7, benefit: "Adjacency logistics bonus" },
+  { key: "2", type: TYPES.POWER, name: "Battery Relay", cost: 80, benefit: "Power cap + efficiency bonus" },
+  { key: "3", type: TYPES.DROPPER, name: "Money Dropper", cost: 60, benefit: "Primary passive income" },
+  { key: "4", type: TYPES.CORE, name: "Fusion Core", cost: 95, benefit: "Active clicks + global multiplier" },
+  { key: "5", type: TYPES.CONVEYOR, name: "Conveyor", cost: 45, benefit: "Throughput speed boost" },
+  { key: "6", type: TYPES.BANK, name: "Credit Bank", cost: 140, benefit: "Interest + upkeep reduction" }
 ];
 
 const tasks = [
@@ -86,7 +86,7 @@ const tasks = [
 ];
 
 let state = {
-  credits: 200,
+  credits: 360,
   cycle: 1,
   ticks: 0,
   paused: false,
@@ -101,7 +101,8 @@ let state = {
   passivePerCycle: 0,
   factoryIncome: 0,
   netPerCycle: 0,
-  maxFactoryLevel: 1
+  maxFactoryLevel: 1,
+  startupGraceCycles: 12
 };
 
 const grid = Array.from({ length: WORLD_H }, () =>
@@ -193,6 +194,20 @@ function hasAdjacentConveyor(x, y) {
     const nx = x + dx;
     const ny = y + dy;
     return inBounds(nx, ny) && grid[ny][nx].type === TYPES.CONVEYOR;
+  });
+}
+
+function hasAdjacentType(x, y, type) {
+  const dirs = [
+    [1, 0],
+    [-1, 0],
+    [0, 1],
+    [0, -1]
+  ];
+  return dirs.some(([dx, dy]) => {
+    const nx = x + dx;
+    const ny = y + dy;
+    return inBounds(nx, ny) && grid[ny][nx].type === type;
   });
 }
 
@@ -336,27 +351,39 @@ function updateCounts() {
   }
 }
 
-function calcFactoryIncome() {
+function calcFactoryEconomy() {
   let dropperOutput = 0;
   let conveyorBoost = 1;
   let coreBoost = 1;
   let bankBoost = 1;
+  let relayFlatBonus = 0;
+  let interestRate = 0;
+  let upkeepDiscount = 0;
 
   for (let y = 0; y < WORLD_H; y += 1) {
     for (let x = 0; x < WORLD_W; x += 1) {
       const cell = grid[y][x];
       if (cell.type === TYPES.CONVEYOR) conveyorBoost += 0.03 * cell.level;
       if (cell.type === TYPES.CORE) coreBoost += 0.08 * cell.level;
-      if (cell.type === TYPES.BANK) bankBoost += 0.06 * cell.level;
+      if (cell.type === TYPES.BANK) {
+        bankBoost += 0.06 * cell.level;
+        interestRate += 0.003 * cell.level;
+        upkeepDiscount += 0.35 * cell.level;
+      }
+      if (cell.type === TYPES.POWER) relayFlatBonus += 0.7 * cell.level;
       if (cell.type === TYPES.DROPPER) {
         const base = cell.level * (1 + (cell.level - 1) * 0.2);
         const localBoost = hasAdjacentConveyor(x, y) ? 1.3 : 1;
-        dropperOutput += base * localBoost;
+        const roadBoost = hasAdjacentType(x, y, TYPES.ROAD) ? 1.1 : 1;
+        const powerBoost = hasAdjacentType(x, y, TYPES.POWER) ? 1.08 : 1;
+        dropperOutput += base * localBoost * roadBoost * powerBoost;
       }
     }
   }
 
-  return Math.floor(dropperOutput * conveyorBoost * coreBoost * bankBoost);
+  const income = Math.floor(dropperOutput * conveyorBoost * coreBoost * bankBoost + relayFlatBonus);
+  const interest = Math.floor(state.credits * Math.min(interestRate, 0.08));
+  return { income, interest, upkeepDiscount };
 }
 
 function updateEconomy() {
@@ -364,18 +391,22 @@ function updateEconomy() {
   const p = getPowerStats();
   const powerRatio = p.used === 0 ? 1 : Math.min(1, p.cap / p.used);
 
-  state.factoryIncome = Math.floor(calcFactoryIncome() * powerRatio);
+  const factory = calcFactoryEconomy();
+  state.factoryIncome = Math.floor((factory.income + factory.interest) * powerRatio);
   state.passivePerCycle = state.factoryIncome;
 
-  const upkeep =
-    state.count.road +
+  const upkeepBase =
     state.count.conveyor +
     state.count.dropper * 2 +
     state.count.core * 2 +
     state.count.bank * 3 +
     state.count.power;
+  const upkeep = Math.max(0, Math.floor(upkeepBase - factory.upkeepDiscount));
 
   state.netPerCycle = state.factoryIncome - upkeep;
+  if (state.cycle <= state.startupGraceCycles && state.netPerCycle < 0) {
+    state.netPerCycle = 0;
+  }
   state.credits = Math.max(0, state.credits + state.netPerCycle);
 
   state.clickValue = 1 + Math.floor(state.count.core * 0.35 + state.maxFactoryLevel * 0.3);
@@ -601,7 +632,7 @@ function renderPalette() {
   BUILDINGS.forEach((b, i) => {
     const li = document.createElement("li");
     if (i === state.selected) li.classList.add("active");
-    li.textContent = `${b.key} ${b.name} (${b.cost})`;
+    li.textContent = `${b.key} ${b.name} (${b.cost}) - ${b.benefit}`;
     li.addEventListener("click", () => {
       state.selected = i;
       renderPalette();
