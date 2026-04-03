@@ -1,14 +1,15 @@
 :root {
-  --bg0: #050715;
-  --bg1: #0b1536;
-  --bg2: #102256;
-  --panel: rgba(6, 14, 40, 0.86);
-  --panel-border: #38f2ff;
-  --accent: #5eff9d;
-  --warn: #ffd166;
-  --danger: #ff6b6b;
-  --text: #e8f3ff;
-  --muted: #9ec3ff;
+  --bg0: #1b2f1a;
+  --bg1: #274425;
+  --bg2: #395a2f;
+  --panel: #f2d7a5;
+  --panel-dark: #d8b67f;
+  --panel-border: #7f5e37;
+  --accent: #58b368;
+  --warn: #d69231;
+  --danger: #cb4a3e;
+  --text: #2d2518;
+  --muted: #5b4d37;
 }
 
 * {
@@ -19,7 +20,7 @@ html,
 body {
   margin: 0;
   min-height: 100%;
-  background: radial-gradient(circle at 20% 20%, var(--bg2), var(--bg1) 45%, var(--bg0));
+  background: radial-gradient(circle at 50% 10%, #5e7d40, var(--bg2) 40%, var(--bg0));
   color: var(--text);
   font-family: "Rajdhani", sans-serif;
 }
@@ -29,10 +30,10 @@ body {
   inset: 0;
   pointer-events: none;
   background-image:
-    linear-gradient(transparent 96%, rgba(120, 255, 240, 0.15) 96%),
-    linear-gradient(90deg, transparent 96%, rgba(120, 255, 240, 0.1) 96%);
-  background-size: 48px 48px;
-  opacity: 0.35;
+    linear-gradient(transparent 95%, rgba(255, 255, 255, 0.08) 95%),
+    linear-gradient(90deg, transparent 95%, rgba(255, 255, 255, 0.08) 95%);
+  background-size: 40px 40px;
+  opacity: 0.22;
 }
 
 .layout {
@@ -59,21 +60,23 @@ h2 {
 
 h1 {
   font-size: 1.1rem;
-  color: #9beeff;
-  text-shadow: 0 0 14px rgba(80, 255, 246, 0.55);
+  color: #fef6d7;
+  text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.2);
 }
 
 .topbar p {
   margin: 8px 0 0;
-  color: var(--muted);
+  color: #e4d5b5;
 }
 
 .meta {
   padding: 8px 12px;
-  border: 1px solid var(--panel-border);
-  border-radius: 10px;
-  background: rgba(8, 25, 62, 0.76);
+  border: 2px solid #5a3d1d;
+  border-radius: 6px;
+  background: #ffd47f;
+  color: #4a2f14;
   font-weight: 700;
+  box-shadow: inset 0 -3px 0 rgba(121, 78, 29, 0.34);
 }
 
 .game-wrap {
@@ -86,10 +89,11 @@ h1 {
 #game {
   width: 100%;
   height: auto;
-  border-radius: 14px;
-  border: 2px solid #3cd9ff;
-  box-shadow: 0 0 25px rgba(32, 236, 255, 0.35);
-  background: #01060f;
+  image-rendering: pixelated;
+  border-radius: 10px;
+  border: 4px solid #7a5630;
+  box-shadow: 0 10px 0 rgba(66, 44, 24, 0.35);
+  background: #355a2e;
 }
 
 .hud {
@@ -99,16 +103,16 @@ h1 {
 
 .card {
   background: var(--panel);
-  border: 1px solid rgba(56, 242, 255, 0.6);
-  border-radius: 12px;
+  border: 2px solid var(--panel-border);
+  border-radius: 7px;
   padding: 12px;
-  backdrop-filter: blur(2px);
+  box-shadow: inset 0 -4px 0 rgba(84, 58, 31, 0.2);
 }
 
 .card h2 {
   font-size: 0.64rem;
   margin-bottom: 10px;
-  color: #c7fbff;
+  color: #5c3c21;
 }
 
 .card ul,
@@ -124,7 +128,7 @@ h1 {
   align-items: center;
   gap: 12px;
   padding: 5px 0;
-  border-bottom: 1px dashed rgba(155, 225, 255, 0.14);
+  border-bottom: 1px dashed rgba(90, 62, 33, 0.22);
 }
 
 .card li:last-child {
@@ -138,16 +142,17 @@ h1 {
 
 .palette li {
   cursor: pointer;
-  border: 1px solid transparent;
-  border-radius: 8px;
+  border: 1px solid rgba(96, 68, 40, 0.45);
+  border-radius: 6px;
   padding: 6px;
   transition: 130ms ease;
+  background: rgba(255, 245, 220, 0.42);
 }
 
 .palette li.active,
 .palette li:hover {
-  border-color: #4be9ff;
-  background: rgba(52, 214, 255, 0.1);
+  border-color: #588f44;
+  background: rgba(143, 202, 99, 0.3);
 }
 
 .tip {
@@ -156,9 +161,50 @@ h1 {
   font-size: 0.9rem;
 }
 
+.core-button {
+  width: 100%;
+  border: 2px solid #5b3a1d;
+  border-radius: 6px;
+  background: linear-gradient(180deg, #9af5ff, #54c5e0);
+  color: #17313a;
+  font-family: "Press Start 2P", cursive;
+  font-size: 0.62rem;
+  padding: 10px 8px;
+  margin-bottom: 8px;
+  cursor: pointer;
+  box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.2);
+}
+
+.core-button:active {
+  transform: translateY(1px);
+}
+
+.upgrades,
+.tasks {
+  display: grid;
+  gap: 6px;
+}
+
+.upgrade-button,
+.task-button {
+  border: 1px solid #7b5a33;
+  border-radius: 5px;
+  background: #f9ebc8;
+  color: #372714;
+  padding: 6px 7px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.upgrade-button[disabled],
+.task-button[disabled] {
+  opacity: 0.52;
+  cursor: not-allowed;
+}
+
 kbd {
-  background: rgba(120, 255, 210, 0.12);
-  border: 1px solid rgba(120, 255, 210, 0.5);
+  background: #efe0b9;
+  border: 1px solid #876338;
   border-radius: 4px;
   padding: 2px 6px;
   font-family: "Press Start 2P", cursive;
@@ -168,9 +214,9 @@ kbd {
 .status {
   margin-top: 14px;
   padding: 10px 12px;
-  border-radius: 10px;
-  background: rgba(8, 25, 62, 0.7);
-  border: 1px solid rgba(56, 242, 255, 0.4);
+  border-radius: 7px;
+  background: #f0d59d;
+  border: 2px solid #7d5a31;
   min-height: 44px;
 }
 

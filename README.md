@@ -1,40 +1,44 @@
 # Neon Skyline Tycoon
 
-A browser-based 2D pixel tycoon game with arrow-key movement, intuitive progression, and a futuristic utopian cyberpunk visual style.
+A browser-based 2D pixel tycoon game with single-step movement, click-to-earn progression, upgrades, and city-building simulation.
 
 ## Features
 
-- Arrow key movement for the mayor drone cursor
+- Arrow key + WASD movement for the mayor drone cursor
 - Build system with 6 tile types:
-  - `1` Sky Road
-  - `2` Neon Homes (Residential)
-  - `3` Holo Mall (Commercial)
-  - `4` Fusion Lab (Industrial)
-  - `5` Solar Spire (Power)
-  - `6` Zen Garden (Park)
+  - `1` Stone Walkway
+  - `2` Sky Cottages (Residential)
+  - `3` Bazaar Hub (Commercial)
+  - `4` Fabricator (Industrial)
+  - `5` Sun Reactor (Power)
+  - `6` Garden Pod (Park)
 - Economic simulation:
   - Credits, population, happiness, pollution, demand, power capacity/usage
-- Objective progression and rewards
-- Flying-car ambient traffic for cyberpunk atmosphere
+- Cookie Clicker-style earning loop with:
+  - Fusion Core tapping button
+  - Buyable upgrades that boost tap and passive income
+  - Claimable task rewards
+- Flying-car ambient traffic for atmosphere
 - Mobile-friendly layout (desktop-first gameplay)
 
 ## Play Controls
 
-- Move drone: `Arrow Keys`
+- Move drone: `Arrow Keys` or `WASD`
 - Build selected structure: `Space`
 - Bulldoze tile: `X`
 - Pause: `P`
 - Change structure: keys `1` to `6`
+- Harvest credits: click `Harvest Credits`
 
 ## Intuitive Progression Path (Recommended Strategy)
 
-1. Extend roads from starter roads.
-2. Place 2-3 residential zones.
-3. Add 1 commercial zone.
-4. Add 1 industrial zone for stronger economy.
-5. Add a power plant as soon as power demand rises.
-6. Add parks to increase happiness and counter pollution.
-7. Keep zones balanced using the demand meter.
+1. Tap Harvest Credits to get fast starter money.
+2. Build walkways and place 2 Sky Cottages.
+3. Complete tasks and claim rewards.
+4. Buy early upgrades for more tap and passive income.
+5. Expand into commercial + industrial zones.
+6. Add Sun Reactors and Garden Pods to keep city efficiency high.
+7. Reinvest profit into upgrades so money production scales faster.
 
 ## Run Locally
 
