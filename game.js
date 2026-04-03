@@ -17,6 +17,7 @@ const TILE = 48;
 const WORLD_W = 90;
 const WORLD_H = 90;
 const MAX_CREDITS = 1e12;
+const SAVE_KEY = "neon_skyline_minimal_save_v1";
 
 const TYPES = {
   EMPTY: "empty",
@@ -85,6 +86,79 @@ const grid = Array.from({ length: WORLD_H }, () =>
     level: 1
   }))
 );
+
+function saveProgress() {
+  try {
+    const payload = {
+      state: {
+        credits: state.credits,
+        selected: state.selected,
+        ticks: state.ticks,
+        paused: state.paused,
+        player: state.player,
+        camera: state.camera,
+        clickValue: state.clickValue,
+        totalTaps: state.totalTaps,
+        netPerCycle: state.netPerCycle
+      },
+      tasks: tasks.map((t) => ({ done: t.done, claimed: t.claimed })),
+      grid: grid.map((row) => row.map((c) => ({ type: c.type, level: c.level })))
+    };
+    localStorage.setItem(SAVE_KEY, JSON.stringify(payload));
+  } catch {
+    // Ignore save failures (storage quota, private mode, etc).
+  }
+}
+
+function loadProgress() {
+  try {
+    const raw = localStorage.getItem(SAVE_KEY);
+    if (!raw) return false;
+    const data = JSON.parse(raw);
+    if (!data || !data.state || !Array.isArray(data.grid) || !Array.isArray(data.tasks)) {
+      return false;
+    }
+
+    state.credits = clampNumber(Number(data.state.credits || 0));
+    state.selected = Number.isInteger(data.state.selected) ? data.state.selected : 0;
+    state.ticks = Number.isInteger(data.state.ticks) ? data.state.ticks : 0;
+    state.paused = !!data.state.paused;
+    state.player = {
+      x: Number.isInteger(data.state.player?.x) ? data.state.player.x : state.player.x,
+      y: Number.isInteger(data.state.player?.y) ? data.state.player.y : state.player.y
+    };
+    state.camera = {
+      x: Number.isFinite(data.state.camera?.x) ? data.state.camera.x : 0,
+      y: Number.isFinite(data.state.camera?.y) ? data.state.camera.y : 0
+    };
+    state.clickValue = Number.isFinite(data.state.clickValue) ? data.state.clickValue : 1;
+    state.totalTaps = Number.isInteger(data.state.totalTaps) ? data.state.totalTaps : 0;
+    state.netPerCycle = Number.isFinite(data.state.netPerCycle) ? data.state.netPerCycle : 0;
+
+    for (let y = 0; y < WORLD_H; y += 1) {
+      const srcRow = data.grid[y];
+      if (!Array.isArray(srcRow)) continue;
+      for (let x = 0; x < WORLD_W; x += 1) {
+        const src = srcRow[x];
+        if (!src || typeof src.type !== "string") continue;
+        if (!Object.values(TYPES).includes(src.type)) continue;
+        grid[y][x].type = src.type;
+        grid[y][x].level = Number.isFinite(src.level) ? Math.max(1, Math.floor(src.level)) : 1;
+      }
+    }
+
+    data.tasks.forEach((savedTask, i) => {
+      if (!tasks[i]) return;
+      tasks[i].done = !!savedTask.done;
+      tasks[i].claimed = !!savedTask.claimed;
+    });
+
+    setStatus("Save loaded.", 1400);
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 function clampNumber(n, min = 0, max = MAX_CREDITS) {
   if (!Number.isFinite(n) || Number.isNaN(n)) return min;
@@ -159,6 +233,7 @@ function buildAt(x, y) {
   cell.type = choice.type;
   updateCounts();
   evaluateTasks();
+  saveProgress();
   setStatus(`Built ${choice.name}.`);
 }
 
@@ -172,6 +247,7 @@ function bulldozeAt(x, y) {
   cell.level = 1;
   updateCounts();
   evaluateTasks();
+  saveProgress();
   setStatus("Tile cleared.");
 }
 
@@ -182,6 +258,7 @@ function claimTask(index) {
   state.credits = clampNumber(state.credits + task.reward);
   setStatus(`Task claimed: +${task.reward} credits.`);
   renderTasks();
+  saveProgress();
 }
 
 function evaluateTasks() {
@@ -200,6 +277,7 @@ function harvestCredits() {
   updateCounts();
   const gain = Math.max(1, state.clickValue);
   state.credits = clampNumber(state.credits + gain);
+  saveProgress();
   if (Math.random() < 0.2) {
     setStatus(`Harvested +${gain} credits.`);
   }
@@ -226,6 +304,7 @@ function updateEconomy() {
   calcNetPerCycle();
   state.credits = clampNumber(state.credits + state.netPerCycle);
   evaluateTasks();
+  saveProgress();
 }
 
 function updateCamera() {
@@ -451,9 +530,20 @@ window.addEventListener("keydown", (e) => {
 
 ui.coreButton.addEventListener("click", harvestCredits);
 
-seedStarterRoads();
-updateCounts();
+const loaded = loadProgress();
+if (!loaded) {
+  seedStarterRoads();
+  updateCounts();
+  calcNetPerCycle();
+  saveProgress();
+} else {
+  updateCounts();
+  calcNetPerCycle();
+}
+
 renderPalette();
 renderTasks();
-updateEconomy();
+updateUI();
 gameLoop();
+
+window.addEventListener("beforeunload", saveProgress);
