@@ -105,6 +105,8 @@ let state = {
   startupGraceCycles: 12
 };
 
+const MAX_CREDITS = 1e12;
+
 const grid = Array.from({ length: WORLD_H }, () =>
   Array.from({ length: WORLD_W }, () => ({
     type: TYPES.EMPTY,
@@ -167,6 +169,15 @@ function inBounds(x, y) {
 function setStatus(text, ms = 1800) {
   state.statusUntil = performance.now() + ms;
   ui.status.textContent = text;
+}
+
+function clampNumber(n, min = 0, max = MAX_CREDITS) {
+  if (!Number.isFinite(n) || Number.isNaN(n)) return min;
+  return Math.max(min, Math.min(max, n));
+}
+
+function recalcClickValue() {
+  state.clickValue = 1 + Math.floor(state.count.core * 0.6 + state.maxFactoryLevel * 0.35);
 }
 
 function hasAdjacentRoad(x, y) {
@@ -349,6 +360,8 @@ function updateCounts() {
       }
     }
   }
+
+  recalcClickValue();
 }
 
 function calcFactoryEconomy() {
@@ -390,16 +403,19 @@ function updateEconomy() {
   updateCounts();
   const p = getPowerStats();
   const powerRatio = p.used === 0 ? 1 : Math.min(1, p.cap / p.used);
+  const powerFactor = 0.45 + powerRatio * 0.55;
 
   const factory = calcFactoryEconomy();
-  state.factoryIncome = Math.floor((factory.income + factory.interest) * powerRatio);
+  state.factoryIncome = Math.floor((factory.income + factory.interest) * powerFactor);
+  if (state.count.dropper > 0 && state.factoryIncome <= 0) {
+    // Droppers should always yield something in the base loop.
+    state.factoryIncome = Math.max(1, state.count.dropper);
+  }
   state.passivePerCycle = state.factoryIncome;
 
   // Upkeep is intentionally disabled for core-loop prototyping.
   state.netPerCycle = state.factoryIncome;
-  state.credits = Math.max(0, state.credits + state.netPerCycle);
-
-  state.clickValue = 1 + Math.floor(state.count.core * 0.35 + state.maxFactoryLevel * 0.3);
+  state.credits = clampNumber(state.credits + state.netPerCycle, 0, MAX_CREDITS);
 
   state.cycle += 1;
   ui.clock.textContent = `Cycle ${state.cycle}`;
@@ -428,8 +444,9 @@ function claimTask(index) {
 }
 
 function clickCore() {
+  updateCounts();
   const gain = Math.max(1, Math.floor(state.clickValue));
-  state.credits += gain;
+  state.credits = clampNumber(state.credits + gain, 0, MAX_CREDITS);
   state.totalTaps += 1;
   updateUI();
   if (state.totalTaps % 6 === 0) setStatus(`Harvested +${gain} credits.`);
@@ -572,6 +589,11 @@ function render() {
 
 function updateUI() {
   const p = getPowerStats();
+
+  state.credits = clampNumber(state.credits, 0, MAX_CREDITS);
+  state.factoryIncome = clampNumber(state.factoryIncome, 0, MAX_CREDITS);
+  state.passivePerCycle = clampNumber(state.passivePerCycle, 0, MAX_CREDITS);
+  state.netPerCycle = clampNumber(state.netPerCycle, -MAX_CREDITS, MAX_CREDITS);
 
   ui.credits.textContent = Math.floor(state.credits).toString();
   ui.power.textContent = `${p.used} / ${p.cap}`;
