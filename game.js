@@ -395,18 +395,8 @@ function updateEconomy() {
   state.factoryIncome = Math.floor((factory.income + factory.interest) * powerRatio);
   state.passivePerCycle = state.factoryIncome;
 
-  const upkeepBase =
-    state.count.conveyor +
-    state.count.dropper * 2 +
-    state.count.core * 2 +
-    state.count.bank * 3 +
-    state.count.power;
-  const upkeep = Math.max(0, Math.floor(upkeepBase - factory.upkeepDiscount));
-
-  state.netPerCycle = state.factoryIncome - upkeep;
-  if (state.cycle <= state.startupGraceCycles && state.netPerCycle < 0) {
-    state.netPerCycle = 0;
-  }
+  // Upkeep is intentionally disabled for core-loop prototyping.
+  state.netPerCycle = state.factoryIncome;
   state.credits = Math.max(0, state.credits + state.netPerCycle);
 
   state.clickValue = 1 + Math.floor(state.count.core * 0.35 + state.maxFactoryLevel * 0.3);
