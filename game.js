@@ -10,7 +10,9 @@ const ui = {
   objectives: document.getElementById("objectives"),
   palette: document.getElementById("palette"),
   status: document.getElementById("status"),
-  coreButton: document.getElementById("core-click")
+  coreButton: document.getElementById("core-click"),
+  restartButton: document.getElementById("restart-btn"),
+  saveIndicator: document.getElementById("save-indicator")
 };
 
 const TILE = 48;
@@ -87,6 +89,21 @@ const grid = Array.from({ length: WORLD_H }, () =>
   }))
 );
 
+let saveIndicatorTimer;
+
+function showSaveIndicator(text, variant = "saved") {
+  if (!ui.saveIndicator) return;
+  ui.saveIndicator.textContent = text;
+  ui.saveIndicator.classList.remove("saved", "loaded");
+  if (variant) ui.saveIndicator.classList.add(variant);
+
+  if (saveIndicatorTimer) clearTimeout(saveIndicatorTimer);
+  saveIndicatorTimer = setTimeout(() => {
+    ui.saveIndicator.textContent = "Auto-save on";
+    ui.saveIndicator.classList.remove("saved", "loaded");
+  }, 1400);
+}
+
 function saveProgress() {
   try {
     const payload = {
@@ -105,6 +122,7 @@ function saveProgress() {
       grid: grid.map((row) => row.map((c) => ({ type: c.type, level: c.level })))
     };
     localStorage.setItem(SAVE_KEY, JSON.stringify(payload));
+    showSaveIndicator("Saved", "saved");
   } catch {
     // Ignore save failures (storage quota, private mode, etc).
   }
@@ -154,10 +172,48 @@ function loadProgress() {
     });
 
     setStatus("Save loaded.", 1400);
+    showSaveIndicator("Save loaded", "loaded");
     return true;
   } catch {
     return false;
   }
+}
+
+function resetGame() {
+  Object.assign(state, {
+    credits: 320,
+    selected: 0,
+    ticks: 0,
+    paused: false,
+    player: { x: 45, y: 45 },
+    camera: { x: 0, y: 0 },
+    count: { road: 0, dropper: 0, core: 0 },
+    clickValue: 1,
+    netPerCycle: 0,
+    statusUntil: 0
+  });
+
+  for (let y = 0; y < WORLD_H; y += 1) {
+    for (let x = 0; x < WORLD_W; x += 1) {
+      grid[y][x].type = TYPES.EMPTY;
+      grid[y][x].level = 1;
+    }
+  }
+
+  tasks.forEach((task) => {
+    task.done = false;
+    task.claimed = false;
+  });
+
+  seedStarterRoads();
+  updateCounts();
+  calcNetPerCycle();
+  renderTasks();
+  renderPalette();
+  updateUI();
+  saveProgress();
+  setStatus("Progress restarted.");
+  showSaveIndicator("Restarted", "loaded");
 }
 
 function clampNumber(n, min = 0, max = MAX_CREDITS) {
@@ -528,7 +584,15 @@ window.addEventListener("keydown", (e) => {
   }
 });
 
-ui.coreButton.addEventListener("click", harvestCredits);
+if (ui.coreButton) ui.coreButton.addEventListener("click", harvestCredits);
+if (ui.restartButton) {
+  ui.restartButton.addEventListener("click", () => {
+    if (window.confirm("Restart progress? This will overwrite your current save.")) {
+      localStorage.removeItem(SAVE_KEY);
+      resetGame();
+    }
+  });
+}
 
 const loaded = loadProgress();
 if (!loaded) {
@@ -536,6 +600,7 @@ if (!loaded) {
   updateCounts();
   calcNetPerCycle();
   saveProgress();
+  showSaveIndicator("New save", "saved");
 } else {
   updateCounts();
   calcNetPerCycle();

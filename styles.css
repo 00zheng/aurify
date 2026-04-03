@@ -57,6 +57,22 @@ body {
   gap: 8px;
 }
 
+.save-indicator {
+  min-width: 130px;
+  text-align: center;
+  font-size: 0.84rem;
+}
+
+.save-indicator.saved {
+  background: #dcffbc;
+  color: #35511b;
+}
+
+.save-indicator.loaded {
+  background: #c8f4ff;
+  color: #1f4452;
+}
+
 h1,
 h2 {
   margin: 0;
