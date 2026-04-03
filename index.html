@@ -31,7 +31,7 @@
 
       <section class="tab-panel active" id="panel-game" role="tabpanel" aria-labelledby="tab-game">
         <section class="game-wrap">
-          <canvas id="game" width="1024" height="640" aria-label="game canvas"></canvas>
+          <canvas id="game" width="1280" height="768" aria-label="game canvas"></canvas>
 
           <aside class="hud">
             <div class="card compact">
@@ -43,35 +43,26 @@
                 <li><span>Power</span><strong id="power">0 / 0</strong></li>
                 <li><span>Pollution</span><strong id="pollution">0</strong></li>
                 <li><span>Demand</span><strong id="demand">0 / 0 / 0</strong></li>
-              </ul>
-            </div>
-
-            <div class="card compact">
-              <h2>Factory Line</h2>
-              <ul>
-                <li><span>Droppers</span><strong id="dropper-count">1</strong></li>
-                <li><span>Conveyor Lv</span><strong id="conveyor-level">1</strong></li>
-                <li><span>Collector Lv</span><strong id="collector-level">1</strong></li>
-                <li><span>Multiplier Lv</span><strong id="multiplier-level">0</strong></li>
-                <li><span>Plot Tier</span><strong id="plot-tier">1</strong></li>
                 <li><span>Factory / cycle</span><strong id="factory-rate">0</strong></li>
               </ul>
-              <ul class="upgrades" id="factory-actions"></ul>
             </div>
 
             <div class="card compact">
               <h2>Build Palette</h2>
               <ul class="palette" id="palette"></ul>
-              <p class="tip">Use <kbd>1</kbd>-<kbd>6</kbd> to choose, <kbd>Space</kbd> to build.</p>
+              <p class="tip">Use <kbd>1</kbd>-<kbd>8</kbd> to choose, <kbd>Space</kbd> to build.</p>
             </div>
 
             <div class="card compact">
-              <h2>Fusion Core</h2>
-              <button id="core-click" class="core-button">Harvest Credits</button>
+              <h2>Factory Interaction</h2>
               <ul>
-                <li><span>Tap Value</span><strong id="tap-value">1</strong></li>
+                <li><span>Droppers</span><strong id="dropper-count">0</strong></li>
+                <li><span>Fusion Cores</span><strong id="core-count">0</strong></li>
+                <li><span>Conveyor Nodes</span><strong id="conveyor-count">0</strong></li>
                 <li><span>Passive / cycle</span><strong id="passive-rate">0</strong></li>
+                <li><span>Core Tap Value</span><strong id="tap-value">1</strong></li>
               </ul>
+              <button id="core-click" class="core-button">Harvest Credits (Fallback)</button>
             </div>
 
             <div class="card compact">
@@ -80,6 +71,7 @@
                 <li>Move Mayor Drone: <kbd>Arrow Keys</kbd> or <kbd>WASD</kbd></li>
                 <li>Build on highlighted tile: <kbd>Space</kbd></li>
                 <li>Bulldoze tile: <kbd>X</kbd></li>
+                <li>Use building under drone: <kbd>E</kbd></li>
                 <li>Pause: <kbd>P</kbd></li>
               </ul>
             </div>
@@ -96,10 +88,10 @@
         <div class="card howto-card">
           <h2>How To Play</h2>
           <ol class="howto-list">
-            <li>Start by clicking Harvest Credits for your first cash.</li>
-            <li>Buy Factory upgrades in this order: Droppers, Conveyor, Collector, Multiplier.</li>
-            <li>Upgrade Plot Tier to unlock higher production caps and stronger scaling.</li>
-            <li>Use building tools to expand your city and increase city-based income.</li>
+            <li>Build Droppers and Fusion Cores directly on the map using the Build Palette.</li>
+            <li>Stand on a Dropper, Core, or Conveyor and press <kbd>E</kbd> to upgrade it.</li>
+            <li>Click Harvest Credits or use a Fusion Core for active cash boosts.</li>
+            <li>Build roads, housing, commerce, and industry to stack city income on top.</li>
             <li>Complete tasks and claim rewards to jump into mid-game faster.</li>
             <li>Reinvest constantly for compounding growth. Credits never go below 0.</li>
           </ol>
