@@ -1,0 +1,195 @@
+:root {
+  --bg0: #050715;
+  --bg1: #0b1536;
+  --bg2: #102256;
+  --panel: rgba(6, 14, 40, 0.86);
+  --panel-border: #38f2ff;
+  --accent: #5eff9d;
+  --warn: #ffd166;
+  --danger: #ff6b6b;
+  --text: #e8f3ff;
+  --muted: #9ec3ff;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+  background: radial-gradient(circle at 20% 20%, var(--bg2), var(--bg1) 45%, var(--bg0));
+  color: var(--text);
+  font-family: "Rajdhani", sans-serif;
+}
+
+.backdrop {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(transparent 96%, rgba(120, 255, 240, 0.15) 96%),
+    linear-gradient(90deg, transparent 96%, rgba(120, 255, 240, 0.1) 96%);
+  background-size: 48px 48px;
+  opacity: 0.35;
+}
+
+.layout {
+  position: relative;
+  max-width: 1500px;
+  margin: 0 auto;
+  padding: 18px;
+}
+
+.topbar {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+
+h1,
+h2 {
+  margin: 0;
+  font-family: "Press Start 2P", cursive;
+  letter-spacing: 0.6px;
+}
+
+h1 {
+  font-size: 1.1rem;
+  color: #9beeff;
+  text-shadow: 0 0 14px rgba(80, 255, 246, 0.55);
+}
+
+.topbar p {
+  margin: 8px 0 0;
+  color: var(--muted);
+}
+
+.meta {
+  padding: 8px 12px;
+  border: 1px solid var(--panel-border);
+  border-radius: 10px;
+  background: rgba(8, 25, 62, 0.76);
+  font-weight: 700;
+}
+
+.game-wrap {
+  display: grid;
+  grid-template-columns: minmax(320px, 1fr) 350px;
+  gap: 16px;
+  align-items: start;
+}
+
+#game {
+  width: 100%;
+  height: auto;
+  border-radius: 14px;
+  border: 2px solid #3cd9ff;
+  box-shadow: 0 0 25px rgba(32, 236, 255, 0.35);
+  background: #01060f;
+}
+
+.hud {
+  display: grid;
+  gap: 12px;
+}
+
+.card {
+  background: var(--panel);
+  border: 1px solid rgba(56, 242, 255, 0.6);
+  border-radius: 12px;
+  padding: 12px;
+  backdrop-filter: blur(2px);
+}
+
+.card h2 {
+  font-size: 0.64rem;
+  margin-bottom: 10px;
+  color: #c7fbff;
+}
+
+.card ul,
+.card ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.card li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 5px 0;
+  border-bottom: 1px dashed rgba(155, 225, 255, 0.14);
+}
+
+.card li:last-child {
+  border-bottom: none;
+}
+
+.palette {
+  display: grid;
+  gap: 6px;
+}
+
+.palette li {
+  cursor: pointer;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  padding: 6px;
+  transition: 130ms ease;
+}
+
+.palette li.active,
+.palette li:hover {
+  border-color: #4be9ff;
+  background: rgba(52, 214, 255, 0.1);
+}
+
+.tip {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+kbd {
+  background: rgba(120, 255, 210, 0.12);
+  border: 1px solid rgba(120, 255, 210, 0.5);
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-family: "Press Start 2P", cursive;
+  font-size: 0.52rem;
+}
+
+.status {
+  margin-top: 14px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(8, 25, 62, 0.7);
+  border: 1px solid rgba(56, 242, 255, 0.4);
+  min-height: 44px;
+}
+
+@media (max-width: 1180px) {
+  .game-wrap {
+    grid-template-columns: 1fr;
+  }
+
+  .hud {
+    grid-template-columns: repeat(2, minmax(200px, 1fr));
+  }
+}
+
+@media (max-width: 780px) {
+  .hud {
+    grid-template-columns: 1fr;
+  }
+
+  h1 {
+    font-size: 0.86rem;
+  }
+}

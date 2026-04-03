@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Neon Skyline Tycoon</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Rajdhani:wght@500;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="backdrop"></div>
+    <main class="layout">
+      <header class="topbar">
+        <div>
+          <h1>Neon Skyline Tycoon</h1>
+          <p>Build the most utopian cyber city in the sky.</p>
+        </div>
+        <div class="meta" id="clock">Cycle 1</div>
+      </header>
+
+      <section class="game-wrap">
+        <canvas id="game" width="1024" height="640" aria-label="game canvas"></canvas>
+
+        <aside class="hud">
+          <div class="card">
+            <h2>City Stats</h2>
+            <ul>
+              <li><span>Credits</span><strong id="credits">0</strong></li>
+              <li><span>Population</span><strong id="population">0</strong></li>
+              <li><span>Happiness</span><strong id="happiness">0%</strong></li>
+              <li><span>Power</span><strong id="power">0 / 0</strong></li>
+              <li><span>Pollution</span><strong id="pollution">0</strong></li>
+              <li><span>Demand</span><strong id="demand">0 / 0 / 0</strong></li>
+            </ul>
+          </div>
+
+          <div class="card">
+            <h2>Build Palette</h2>
+            <ul class="palette" id="palette"></ul>
+            <p class="tip">Use <kbd>1</kbd>-<kbd>6</kbd> to choose, <kbd>Space</kbd> to build.</p>
+          </div>
+
+          <div class="card">
+            <h2>Controls</h2>
+            <ul>
+              <li>Move Mayor Drone: <kbd>Arrow Keys</kbd></li>
+              <li>Build on highlighted tile: <kbd>Space</kbd></li>
+              <li>Bulldoze tile: <kbd>X</kbd></li>
+              <li>Pause: <kbd>P</kbd></li>
+            </ul>
+          </div>
+
+          <div class="card">
+            <h2>Objectives</h2>
+            <ol id="objectives"></ol>
+          </div>
+        </aside>
+      </section>
+
+      <footer class="status" id="status">Welcome to your floating district.</footer>
+    </main>
+
+    <script src="game.js"></script>
+  </body>
+</html>
