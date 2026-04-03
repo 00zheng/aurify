@@ -1,6 +1,6 @@
 # Neon Skyline Tycoon
 
-A browser-based 2D pixel tycoon game with single-step movement, click-to-earn progression, upgrades, and city-building simulation.
+A browser-based 2D pixel tycoon game focused on automated factory growth: start small, reinvest, and scale into a high-output operation.
 
 ## Features
 
@@ -14,10 +14,16 @@ A browser-based 2D pixel tycoon game with single-step movement, click-to-earn pr
   - `6` Garden Pod (Park)
 - Economic simulation:
   - Credits, population, happiness, pollution, demand, power capacity/usage
-- Cookie Clicker-style earning loop with:
-  - Fusion Core tapping button
-  - Buyable upgrades that boost tap and passive income
-  - Claimable task rewards
+- Factory progression system with:
+  - Droppers (base money generation)
+  - Conveyor upgrades (speed scaling)
+  - Collector upgrades (value scaling)
+  - Multipliers (compounding boosts)
+  - Plot expansion (higher caps and stronger growth)
+- Fusion Core click income for active play
+- Task rewards for milestone progression
+- Top tabs: `Game` and `How To Play`
+- Credits are clamped to **0** (no negative credits)
 - Flying-car ambient traffic for atmosphere
 - Mobile-friendly layout (desktop-first gameplay)
 
@@ -32,13 +38,13 @@ A browser-based 2D pixel tycoon game with single-step movement, click-to-earn pr
 
 ## Intuitive Progression Path (Recommended Strategy)
 
-1. Tap Harvest Credits to get fast starter money.
-2. Build walkways and place 2 Sky Cottages.
-3. Complete tasks and claim rewards.
-4. Buy early upgrades for more tap and passive income.
-5. Expand into commercial + industrial zones.
-6. Add Sun Reactors and Garden Pods to keep city efficiency high.
-7. Reinvest profit into upgrades so money production scales faster.
+1. Tap Harvest Credits to bootstrap early cash.
+2. Buy Droppers first to establish passive output.
+3. Upgrade Conveyor and Collector to accelerate income.
+4. Add Profit Multipliers for compounding growth.
+5. Expand Factory Plot when unlocked to raise progression ceiling.
+6. Build city zones to layer additional economy income on top.
+7. Claim tasks and keep reinvesting into production.
 
 ## Run Locally
 

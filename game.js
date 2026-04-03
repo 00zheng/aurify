@@ -15,7 +15,13 @@ const ui = {
   coreButton: document.getElementById("core-click"),
   tapValue: document.getElementById("tap-value"),
   passiveRate: document.getElementById("passive-rate"),
-  upgrades: document.getElementById("upgrades")
+  dropperCount: document.getElementById("dropper-count"),
+  conveyorLevel: document.getElementById("conveyor-level"),
+  collectorLevel: document.getElementById("collector-level"),
+  multiplierLevel: document.getElementById("multiplier-level"),
+  plotTier: document.getElementById("plot-tier"),
+  factoryRate: document.getElementById("factory-rate"),
+  factoryActions: document.getElementById("factory-actions")
 };
 
 const TILE = 32;
@@ -43,112 +49,133 @@ const BUILDINGS = [
   { key: "6", type: TYPES.PARK, name: "Garden Pod", cost: 55 }
 ];
 
-const upgrades = [
+const factoryActions = [
   {
-    id: "gloves",
-    name: "Quantum Gloves",
-    cost: 90,
-    desc: "+1 credits per tap",
-    bought: false,
-    apply: (s) => {
-      s.clickValue += 1;
+    id: "dropper",
+    name: "Add Dropper",
+    desc: "More base production",
+    baseCost: 40,
+    growth: 1.38,
+    levelRef: (s) => s.factory.droppers,
+    canBuy: () => true,
+    maxRef: (s) => 4 + s.factory.plot * 4,
+    buy: (s) => {
+      s.factory.droppers += 1;
     }
   },
   {
-    id: "miner",
-    name: "Drone Miners",
-    cost: 220,
-    desc: "+5 passive credits/cycle",
-    bought: false,
-    apply: (s) => {
-      s.passiveFlat += 5;
+    id: "conveyor",
+    name: "Conveyor Upgrade",
+    desc: "Faster delivery speed",
+    baseCost: 85,
+    growth: 1.48,
+    levelRef: (s) => s.factory.conveyor,
+    canBuy: (s) => s.factory.droppers >= 2,
+    maxRef: (s) => 2 + s.factory.plot * 3,
+    buy: (s) => {
+      s.factory.conveyor += 1;
     }
   },
   {
-    id: "optimizer",
-    name: "Market Optimizer",
-    cost: 520,
-    desc: "+20% all income",
-    bought: false,
-    apply: (s) => {
-      s.incomeMultiplier += 0.2;
+    id: "collector",
+    name: "Collector Upgrade",
+    desc: "Higher value per unit",
+    baseCost: 135,
+    growth: 1.55,
+    levelRef: (s) => s.factory.collector,
+    canBuy: (s) => s.factory.conveyor >= 2,
+    maxRef: (s) => 2 + s.factory.plot * 3,
+    buy: (s) => {
+      s.factory.collector += 1;
     }
   },
   {
-    id: "swarm",
-    name: "Nano Swarm",
-    cost: 980,
-    desc: "+14 passive credits/cycle",
-    bought: false,
-    apply: (s) => {
-      s.passiveFlat += 14;
+    id: "multiplier",
+    name: "Profit Multiplier",
+    desc: "Strong compounding boost",
+    baseCost: 280,
+    growth: 1.75,
+    levelRef: (s) => s.factory.multiplier,
+    canBuy: (s) => s.factory.plot >= 2,
+    maxRef: (s) => s.factory.plot * 2,
+    buy: (s) => {
+      s.factory.multiplier += 1;
     }
   },
   {
-    id: "hyperloop",
-    name: "Hyperloop Freight",
-    cost: 1450,
-    desc: "+35% city income",
-    bought: false,
-    apply: (s) => {
-      s.cityIncomeMultiplier += 0.35;
+    id: "expand",
+    name: "Expand Factory Plot",
+    desc: "Unlock higher upgrade caps",
+    baseCost: 620,
+    growth: 2.2,
+    levelRef: (s) => s.factory.plot,
+    canBuy: (s) => calcFactoryIncome(s) >= 16 * s.factory.plot,
+    maxRef: () => 5,
+    buy: (s) => {
+      s.factory.plot += 1;
+    }
+  },
+  {
+    id: "core",
+    name: "Core Overclock",
+    desc: "Increase click income",
+    baseCost: 110,
+    growth: 1.6,
+    levelRef: (s) => s.coreLevel,
+    canBuy: () => true,
+    maxRef: () => 8,
+    buy: (s) => {
+      s.coreLevel += 1;
+      s.clickValue = 1 + s.coreLevel;
     }
   }
 ];
 
 const tasks = [
   {
-    text: "Build 6 walkways",
-    reward: 120,
-    done: false,
-    claimed: false,
-    check: (s) => s.count.road >= 6,
-    progress: (s) => `${Math.min(s.count.road, 6)}/6`
-  },
-  {
-    text: "Build 2 Sky Cottages",
-    reward: 160,
-    done: false,
-    claimed: false,
-    check: (s) => s.count.res >= 2,
-    progress: (s) => `${Math.min(s.count.res, 2)}/2`
-  },
-  {
-    text: "Tap the Fusion Core 40 times",
+    text: "Reach 6 droppers",
     reward: 180,
     done: false,
     claimed: false,
-    check: (s) => s.totalTaps >= 40,
-    progress: (s) => `${Math.min(s.totalTaps, 40)}/40`
+    check: (s) => s.factory.droppers >= 6,
+    progress: (s) => `${Math.min(s.factory.droppers, 6)}/6`
   },
   {
-    text: "Reach population 50",
-    reward: 240,
+    text: "Upgrade conveyor to level 4",
+    reward: 220,
     done: false,
     claimed: false,
-    check: (s) => s.population >= 50,
-    progress: (s) => `${Math.min(s.population, 50)}/50`
+    check: (s) => s.factory.conveyor >= 4,
+    progress: (s) => `${Math.min(s.factory.conveyor, 4)}/4`
   },
   {
-    text: "Reach 20 passive income/cycle",
-    reward: 320,
+    text: "Reach factory income 40/cycle",
+    reward: 260,
     done: false,
     claimed: false,
-    check: (s) => s.passivePerCycle >= 20,
-    progress: (s) => `${Math.min(s.passivePerCycle, 20)}/20`
+    check: (s) => calcFactoryIncome(s) >= 40,
+    progress: (s) => `${Math.min(calcFactoryIncome(s), 40)}/40`
   },
   {
-    text: "Reach 2500 credits",
+    text: "Expand to plot tier 3",
+    reward: 360,
+    done: false,
+    claimed: false,
+    check: (s) => s.factory.plot >= 3,
+    progress: (s) => `${Math.min(s.factory.plot, 3)}/3`
+  },
+  {
+    text: "Reach 1500 credits",
     reward: 500,
     done: false,
     claimed: false,
-    check: (s) => s.credits >= 2500,
-    progress: (s) => `${Math.min(Math.floor(s.credits), 2500)}/2500`
+    check: (s) => s.credits >= 1500,
+    progress: (s) => `${Math.min(Math.floor(s.credits), 1500)}/1500`
   }
 ];
 
 let state = {
-  credits: 280,
+  credits: 140,
   population: 0,
   happiness: 55,
   pollution: 0,
@@ -164,13 +191,19 @@ let state = {
   player: { x: 2, y: 2 },
   count: { road: 0, res: 0, com: 0, ind: 0, power: 0, park: 0 },
   statusUntil: 0,
-  statusText: "Move with Arrow Keys or WASD, then build and harvest credits.",
+  statusText: "Start by clicking Harvest Credits, then buy droppers.",
   clickValue: 1,
-  passiveFlat: 0,
-  passivePerCycle: 0,
+  coreLevel: 0,
   incomeMultiplier: 1,
-  cityIncomeMultiplier: 1,
-  totalTaps: 0
+  totalTaps: 0,
+  passivePerCycle: 0,
+  factory: {
+    droppers: 1,
+    conveyor: 1,
+    collector: 1,
+    multiplier: 0,
+    plot: 1
+  }
 };
 
 const grid = Array.from({ length: GRID_H }, () =>
@@ -182,6 +215,37 @@ const grid = Array.from({ length: GRID_H }, () =>
 );
 
 const cars = [];
+let factoryActionStamp = "";
+
+function calcFactoryIncome(s) {
+  const dropperBase = s.factory.droppers * (1 + Math.max(0, s.factory.droppers - 1) * 0.08);
+  const speedMult = 1 + (s.factory.conveyor - 1) * 0.24;
+  const valueMult = 1 + (s.factory.collector - 1) * 0.32;
+  const profitMult = 1 + s.factory.multiplier * 0.55;
+  const plotMult = 1 + (s.factory.plot - 1) * 0.7;
+  return Math.floor(dropperBase * speedMult * valueMult * profitMult * plotMult);
+}
+
+function setupTabs() {
+  const tabs = document.querySelectorAll(".tab-btn");
+  const panelGame = document.getElementById("panel-game");
+  const panelHow = document.getElementById("panel-how");
+
+  tabs.forEach((tab) => {
+    tab.addEventListener("click", () => {
+      const showGame = tab.dataset.tab === "game";
+      tabs.forEach((t) => {
+        t.classList.toggle("active", t === tab);
+        t.setAttribute("aria-selected", t === tab ? "true" : "false");
+      });
+
+      panelGame.classList.toggle("active", showGame);
+      panelHow.classList.toggle("active", !showGame);
+      panelGame.hidden = !showGame;
+      panelHow.hidden = showGame;
+    });
+  });
+}
 
 function seedStarterRoads() {
   for (let x = 4; x < 11; x += 1) {
@@ -326,11 +390,9 @@ function updateEconomy() {
   state.powerUsed = p.used;
 
   const powerRatio = state.powerUsed === 0 ? 1 : Math.min(1, state.powerCap / state.powerUsed);
-
   const resBase = state.count.res * 4;
   const comBase = state.count.com * 6;
   const indBase = state.count.ind * 8;
-
   const parksBoost = state.count.park * 2;
   const overIndPenalty = Math.max(0, state.count.ind - state.count.res) * 1.5;
 
@@ -338,19 +400,16 @@ function updateEconomy() {
 
   const cityQuality = 65 + parksBoost - overIndPenalty - state.pollution * 0.15;
   state.happiness = Math.max(20, Math.min(98, Math.floor(cityQuality * powerRatio)));
-
   state.population = Math.floor(state.count.res * (3 + state.happiness / 50) * powerRatio);
 
-  const cityIncome = Math.floor((resBase + comBase + indBase) * (state.happiness / 100) * powerRatio * state.cityIncomeMultiplier);
-  const passiveIncome = state.passiveFlat;
-  state.passivePerCycle = Math.floor(passiveIncome * state.incomeMultiplier);
+  const cityIncome = Math.floor((resBase + comBase + indBase) * (state.happiness / 100) * powerRatio);
+  const factoryIncome = calcFactoryIncome(state);
+  state.passivePerCycle = factoryIncome;
 
   const upkeep = state.count.road + state.count.power * 5 + state.count.park * 2;
-  const totalIncome = Math.floor((cityIncome + passiveIncome) * state.incomeMultiplier);
+  const totalIncome = Math.floor((cityIncome + factoryIncome) * state.incomeMultiplier);
 
-  state.credits += totalIncome - upkeep;
-  if (state.credits < -100) state.credits = -100;
-
+  state.credits = Math.max(0, state.credits + totalIncome - upkeep);
   state.demandR = Math.max(0, 65 - state.count.res * 3 + state.count.com * 1.2);
   state.demandC = Math.max(0, 60 - state.count.com * 3 + state.count.res * 1.1);
   state.demandI = Math.max(0, 55 - state.count.ind * 2.2 + state.count.com * 0.9);
@@ -386,24 +445,44 @@ function clickCore() {
   const gain = Math.floor(state.clickValue * state.incomeMultiplier);
   state.credits += gain;
   state.totalTaps += 1;
-  if (state.totalTaps % 6 === 0) {
+  if (state.totalTaps % 8 === 0) {
     setStatus(`Fusion Core output +${gain} credits.`);
   }
   evaluateTasks();
 }
 
-function buyUpgrade(index) {
-  const upgrade = upgrades[index];
-  if (!upgrade || upgrade.bought) return;
-  if (state.credits < upgrade.cost) {
-    setStatus("Not enough credits for that upgrade.");
+function getFactoryActionCost(action) {
+  const level = Math.max(1, action.levelRef(state));
+  return Math.floor(action.baseCost * action.growth ** (level - 1));
+}
+
+function buyFactoryAction(id) {
+  const action = factoryActions.find((a) => a.id === id);
+  if (!action) return;
+
+  const current = action.levelRef(state);
+  const max = action.maxRef(state);
+  if (current >= max) {
+    setStatus("Max level reached. Expand plot to unlock more.");
     return;
   }
-  state.credits -= upgrade.cost;
-  upgrade.bought = true;
-  upgrade.apply(state);
-  setStatus(`Upgrade purchased: ${upgrade.name}.`);
-  renderUpgrades();
+
+  if (!action.canBuy(state)) {
+    setStatus("Requirements not met yet.");
+    return;
+  }
+
+  const cost = getFactoryActionCost(action);
+  if (state.credits < cost) {
+    setStatus("Not enough credits.");
+    return;
+  }
+
+  state.credits -= cost;
+  action.buy(state);
+  setStatus(`${action.name} purchased for ${cost}.`);
+  evaluateTasks();
+  renderFactoryActions();
 }
 
 function spawnTraffic() {
@@ -588,6 +667,56 @@ function render() {
   }
 }
 
+function renderFactoryActions() {
+  const stamp = [
+    Math.floor(state.credits),
+    state.factory.droppers,
+    state.factory.conveyor,
+    state.factory.collector,
+    state.factory.multiplier,
+    state.factory.plot,
+    state.coreLevel
+  ].join("|");
+
+  if (stamp === factoryActionStamp) return;
+  factoryActionStamp = stamp;
+
+  ui.factoryActions.innerHTML = "";
+
+  factoryActions.forEach((action) => {
+    const level = action.levelRef(state);
+    const max = action.maxRef(state);
+    const cost = getFactoryActionCost(action);
+    const unlocked = action.canBuy(state);
+    const atMax = level >= max;
+
+    const li = document.createElement("li");
+
+    const label = document.createElement("div");
+    label.className = "upgrade-label";
+    label.textContent = `${action.name} (${cost}) - ${action.desc}`;
+
+    const button = document.createElement("button");
+    button.className = "upgrade-button";
+
+    if (atMax) {
+      button.textContent = "Max";
+      button.disabled = true;
+    } else if (!unlocked) {
+      button.textContent = "Locked";
+      button.disabled = true;
+    } else {
+      button.textContent = "Buy";
+      button.disabled = state.credits < cost;
+      button.addEventListener("click", () => buyFactoryAction(action.id));
+    }
+
+    li.appendChild(label);
+    li.appendChild(button);
+    ui.factoryActions.appendChild(li);
+  });
+}
+
 function updateUI() {
   ui.credits.textContent = Math.floor(state.credits).toString();
   ui.population.textContent = state.population.toString();
@@ -598,9 +727,18 @@ function updateUI() {
   ui.tapValue.textContent = Math.floor(state.clickValue * state.incomeMultiplier).toString();
   ui.passiveRate.textContent = state.passivePerCycle.toString();
 
+  ui.dropperCount.textContent = state.factory.droppers.toString();
+  ui.conveyorLevel.textContent = state.factory.conveyor.toString();
+  ui.collectorLevel.textContent = state.factory.collector.toString();
+  ui.multiplierLevel.textContent = state.factory.multiplier.toString();
+  ui.plotTier.textContent = state.factory.plot.toString();
+  ui.factoryRate.textContent = calcFactoryIncome(state).toString();
+
   if (performance.now() > state.statusUntil) {
-    ui.status.textContent = "Click Harvest Credits for fast cash, then reinvest in upgrades and zones.";
+    ui.status.textContent = "Build factory power first: droppers -> conveyor -> collector -> multiplier -> plot expansion.";
   }
+
+  renderFactoryActions();
 }
 
 function renderTasks() {
@@ -647,31 +785,6 @@ function renderPalette() {
   });
 }
 
-function renderUpgrades() {
-  ui.upgrades.innerHTML = "";
-  upgrades.forEach((upgrade, i) => {
-    const li = document.createElement("li");
-
-    const label = document.createElement("div");
-    label.textContent = `${upgrade.name} (${upgrade.cost}) - ${upgrade.desc}`;
-
-    const button = document.createElement("button");
-    button.className = "upgrade-button";
-    if (upgrade.bought) {
-      button.textContent = "Owned";
-      button.disabled = true;
-    } else {
-      button.textContent = "Buy";
-      button.disabled = state.credits < upgrade.cost;
-      button.addEventListener("click", () => buyUpgrade(i));
-    }
-
-    li.appendChild(label);
-    li.appendChild(button);
-    ui.upgrades.appendChild(li);
-  });
-}
-
 function keyToMove(key) {
   if (key === "ArrowUp" || key === "w") return { dx: 0, dy: -1 };
   if (key === "ArrowDown" || key === "s") return { dx: 0, dy: 1 };
@@ -692,7 +805,6 @@ function gameLoop() {
 
   render();
   updateUI();
-  renderUpgrades();
   requestAnimationFrame(gameLoop);
 }
 
@@ -739,9 +851,10 @@ window.addEventListener("keydown", (e) => {
 
 ui.coreButton.addEventListener("click", clickCore);
 
+setupTabs();
 renderPalette();
 renderTasks();
 updateCounts();
 updateEconomy();
-renderUpgrades();
+renderFactoryActions();
 gameLoop();
