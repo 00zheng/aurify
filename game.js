@@ -3,49 +3,38 @@ const ctx = canvas.getContext("2d");
 
 const ui = {
   credits: document.getElementById("credits"),
-  power: document.getElementById("power"),
-  factoryRate: document.getElementById("factory-rate"),
   netRate: document.getElementById("net-rate"),
+  dropperCount: document.getElementById("dropper-count"),
+  coreCount: document.getElementById("core-count"),
+  tapValue: document.getElementById("tap-value"),
   objectives: document.getElementById("objectives"),
   palette: document.getElementById("palette"),
   status: document.getElementById("status"),
-  clock: document.getElementById("clock"),
-  coreButton: document.getElementById("core-click"),
-  tapValue: document.getElementById("tap-value"),
-  passiveRate: document.getElementById("passive-rate"),
-  dropperCount: document.getElementById("dropper-count"),
-  coreCount: document.getElementById("core-count"),
-  conveyorCount: document.getElementById("conveyor-count"),
-  toggleCycle: document.getElementById("toggle-cycle")
+  coreButton: document.getElementById("core-click")
 };
 
 const TILE = 48;
 const WORLD_W = 90;
 const WORLD_H = 90;
+const MAX_CREDITS = 1e12;
 
 const TYPES = {
   EMPTY: "empty",
   ROAD: "road",
-  POWER: "power",
   DROPPER: "dropper",
-  CORE: "core",
-  CONVEYOR: "conveyor",
-  BANK: "bank"
+  CORE: "core"
 };
 
 const BUILDINGS = [
-  { key: "1", type: TYPES.ROAD, name: "Road", cost: 7, benefit: "Adjacency logistics bonus" },
-  { key: "2", type: TYPES.POWER, name: "Battery Relay", cost: 80, benefit: "Power cap + efficiency bonus" },
-  { key: "3", type: TYPES.DROPPER, name: "Money Dropper", cost: 60, benefit: "Primary passive income" },
-  { key: "4", type: TYPES.CORE, name: "Fusion Core", cost: 95, benefit: "Active clicks + global multiplier" },
-  { key: "5", type: TYPES.CONVEYOR, name: "Conveyor", cost: 45, benefit: "Throughput speed boost" },
-  { key: "6", type: TYPES.BANK, name: "Credit Bank", cost: 140, benefit: "Interest + upkeep reduction" }
+  { key: "1", type: TYPES.ROAD, name: "Road", cost: 7, benefit: "Placement support" },
+  { key: "2", type: TYPES.DROPPER, name: "Money Dropper", cost: 60, benefit: "Passive income" },
+  { key: "3", type: TYPES.CORE, name: "Fusion Core", cost: 95, benefit: "Click + global boost" }
 ];
 
 const tasks = [
   {
     text: "Build 3 Money Droppers",
-    reward: 180,
+    reward: 140,
     done: false,
     claimed: false,
     check: (s) => s.count.dropper >= 3,
@@ -60,52 +49,35 @@ const tasks = [
     progress: (s) => `${Math.min(s.count.core, 2)}/2`
   },
   {
-    text: "Upgrade factory tile to Lv 4",
-    reward: 280,
+    text: "Reach 50 net/cycle",
+    reward: 320,
     done: false,
     claimed: false,
-    check: (s) => s.maxFactoryLevel >= 4,
-    progress: (s) => `${Math.min(s.maxFactoryLevel, 4)}/4`
+    check: (s) => s.netPerCycle >= 50,
+    progress: (s) => `${Math.min(s.netPerCycle, 50)}/50`
   },
   {
-    text: "Reach 70 factory income/cycle",
-    reward: 360,
-    done: false,
-    claimed: false,
-    check: (s) => s.factoryIncome >= 70,
-    progress: (s) => `${Math.min(s.factoryIncome, 70)}/70`
-  },
-  {
-    text: "Reach 2500 credits",
+    text: "Reach 3000 credits",
     reward: 500,
     done: false,
     claimed: false,
-    check: (s) => s.credits >= 2500,
-    progress: (s) => `${Math.min(Math.floor(s.credits), 2500)}/2500`
+    check: (s) => s.credits >= 3000,
+    progress: (s) => `${Math.min(Math.floor(s.credits), 3000)}/3000`
   }
 ];
 
-let state = {
-  credits: 360,
-  cycle: 1,
+const state = {
+  credits: 320,
+  selected: 0,
   ticks: 0,
   paused: false,
-  showCycle: true,
-  selected: 0,
   player: { x: 45, y: 45 },
   camera: { x: 0, y: 0 },
-  count: { road: 0, power: 0, dropper: 0, core: 0, conveyor: 0, bank: 0 },
-  statusUntil: 0,
+  count: { road: 0, dropper: 0, core: 0 },
   clickValue: 1,
-  totalTaps: 0,
-  passivePerCycle: 0,
-  factoryIncome: 0,
   netPerCycle: 0,
-  maxFactoryLevel: 1,
-  startupGraceCycles: 12
+  statusUntil: 0
 };
-
-const MAX_CREDITS = 1e12;
 
 const grid = Array.from({ length: WORLD_H }, () =>
   Array.from({ length: WORLD_W }, () => ({
@@ -114,52 +86,9 @@ const grid = Array.from({ length: WORLD_H }, () =>
   }))
 );
 
-function setupTabs() {
-  const tabs = document.querySelectorAll(".tab-btn[data-tab]");
-  const panelGame = document.getElementById("panel-game");
-  const panelHow = document.getElementById("panel-how");
-
-  tabs.forEach((tab) => {
-    tab.addEventListener("click", () => {
-      const showGame = tab.dataset.tab === "game";
-      tabs.forEach((t) => {
-        t.classList.toggle("active", t === tab);
-        t.setAttribute("aria-selected", t === tab ? "true" : "false");
-      });
-
-      panelGame.classList.toggle("active", showGame);
-      panelHow.classList.toggle("active", !showGame);
-      panelGame.hidden = !showGame;
-      panelHow.hidden = showGame;
-    });
-  });
-}
-
-function setupCycleToggle() {
-  ui.toggleCycle.addEventListener("click", () => {
-    state.showCycle = !state.showCycle;
-    ui.clock.style.display = state.showCycle ? "block" : "none";
-    ui.toggleCycle.textContent = state.showCycle ? "Hide Cycle" : "Show Cycle";
-  });
-}
-
-function seedStarterRoads() {
-  const cx = Math.floor(WORLD_W / 2);
-  const cy = Math.floor(WORLD_H / 2);
-  for (let x = cx - 6; x <= cx + 6; x += 1) {
-    placeFixed(x, cy, TYPES.ROAD);
-  }
-  for (let y = cy - 6; y <= cy + 6; y += 1) {
-    placeFixed(cx, y, TYPES.ROAD);
-  }
-}
-
-function placeFixed(x, y, type) {
-  if (!inBounds(x, y)) return;
-  const cell = grid[y][x];
-  if (cell.type !== TYPES.EMPTY) return;
-  cell.type = type;
-  cell.level = 1;
+function clampNumber(n, min = 0, max = MAX_CREDITS) {
+  if (!Number.isFinite(n) || Number.isNaN(n)) return min;
+  return Math.max(min, Math.min(max, n));
 }
 
 function inBounds(x, y) {
@@ -171,13 +100,15 @@ function setStatus(text, ms = 1800) {
   ui.status.textContent = text;
 }
 
-function clampNumber(n, min = 0, max = MAX_CREDITS) {
-  if (!Number.isFinite(n) || Number.isNaN(n)) return min;
-  return Math.max(min, Math.min(max, n));
-}
-
-function recalcClickValue() {
-  state.clickValue = 1 + Math.floor(state.count.core * 0.6 + state.maxFactoryLevel * 0.35);
+function seedStarterRoads() {
+  const cx = Math.floor(WORLD_W / 2);
+  const cy = Math.floor(WORLD_H / 2);
+  for (let x = cx - 6; x <= cx + 6; x += 1) {
+    grid[cy][x].type = TYPES.ROAD;
+  }
+  for (let y = cy - 6; y <= cy + 6; y += 1) {
+    grid[y][cx].type = TYPES.ROAD;
+  }
 }
 
 function hasAdjacentRoad(x, y) {
@@ -194,32 +125,16 @@ function hasAdjacentRoad(x, y) {
   });
 }
 
-function hasAdjacentConveyor(x, y) {
-  const dirs = [
-    [1, 0],
-    [-1, 0],
-    [0, 1],
-    [0, -1]
-  ];
-  return dirs.some(([dx, dy]) => {
-    const nx = x + dx;
-    const ny = y + dy;
-    return inBounds(nx, ny) && grid[ny][nx].type === TYPES.CONVEYOR;
-  });
-}
-
-function hasAdjacentType(x, y, type) {
-  const dirs = [
-    [1, 0],
-    [-1, 0],
-    [0, 1],
-    [0, -1]
-  ];
-  return dirs.some(([dx, dy]) => {
-    const nx = x + dx;
-    const ny = y + dy;
-    return inBounds(nx, ny) && grid[ny][nx].type === type;
-  });
+function updateCounts() {
+  state.count = { road: 0, dropper: 0, core: 0 };
+  for (const row of grid) {
+    for (const cell of row) {
+      if (cell.type === TYPES.ROAD) state.count.road += 1;
+      if (cell.type === TYPES.DROPPER) state.count.dropper += 1;
+      if (cell.type === TYPES.CORE) state.count.core += 1;
+    }
+  }
+  state.clickValue = 1 + state.count.core;
 }
 
 function buildAt(x, y) {
@@ -235,36 +150,13 @@ function buildAt(x, y) {
     setStatus("Not enough credits.");
     return;
   }
-
-  const needsRoad = choice.type !== TYPES.ROAD;
-  if (needsRoad && !hasAdjacentRoad(x, y)) {
+  if (choice.type !== TYPES.ROAD && !hasAdjacentRoad(x, y)) {
     setStatus("Connect to a road first.");
     return;
   }
 
-  state.credits -= choice.cost;
+  state.credits = clampNumber(state.credits - choice.cost);
   cell.type = choice.type;
-  cell.level = 1;
-
-  if ((choice.type === TYPES.DROPPER || choice.type === TYPES.CORE) && !hasAdjacentConveyor(x, y)) {
-    const dirs = [
-      [1, 0],
-      [-1, 0],
-      [0, 1],
-      [0, -1]
-    ];
-    const slot = dirs.find(([dx, dy]) => {
-      const nx = x + dx;
-      const ny = y + dy;
-      return inBounds(nx, ny) && grid[ny][nx].type === TYPES.EMPTY;
-    });
-    if (slot) {
-      const [dx, dy] = slot;
-      grid[y + dy][x + dx].type = TYPES.CONVEYOR;
-      grid[y + dy][x + dx].level = 1;
-    }
-  }
-
   updateCounts();
   evaluateTasks();
   setStatus(`Built ${choice.name}.`);
@@ -275,8 +167,7 @@ function bulldozeAt(x, y) {
   const cell = grid[y][x];
   if (cell.type === TYPES.EMPTY) return;
 
-  const special = cell.type === TYPES.DROPPER || cell.type === TYPES.CORE || cell.type === TYPES.CONVEYOR || cell.type === TYPES.BANK || cell.type === TYPES.POWER;
-  state.credits += special ? 18 : 6;
+  state.credits = clampNumber(state.credits + (cell.type === TYPES.ROAD ? 4 : 18));
   cell.type = TYPES.EMPTY;
   cell.level = 1;
   updateCounts();
@@ -284,142 +175,13 @@ function bulldozeAt(x, y) {
   setStatus("Tile cleared.");
 }
 
-function getUpgradeCost(cell) {
-  if (cell.type === TYPES.DROPPER) return Math.floor(42 * 1.4 ** (cell.level - 1));
-  if (cell.type === TYPES.CORE) return Math.floor(60 * 1.45 ** (cell.level - 1));
-  if (cell.type === TYPES.CONVEYOR) return Math.floor(35 * 1.35 ** (cell.level - 1));
-  if (cell.type === TYPES.POWER) return Math.floor(70 * 1.4 ** (cell.level - 1));
-  if (cell.type === TYPES.BANK) return Math.floor(85 * 1.45 ** (cell.level - 1));
-  return 0;
-}
-
-function interactTile() {
-  const cell = grid[state.player.y][state.player.x];
-
-  if (cell.type === TYPES.CORE) {
-    const gain = Math.max(1, Math.floor(cell.level * state.clickValue * 2.2));
-    state.credits += gain;
-    state.totalTaps += 1;
-    updateUI();
-    setStatus(`Fusion Core harvested +${gain}.`);
-    evaluateTasks();
-    return;
-  }
-
-  const canUpgrade = [TYPES.DROPPER, TYPES.CONVEYOR, TYPES.POWER, TYPES.BANK].includes(cell.type);
-  if (!canUpgrade) {
-    setStatus("Nothing to interact with here.");
-    return;
-  }
-
-  const cost = getUpgradeCost(cell);
-  if (state.credits < cost) {
-    setStatus(`Need ${cost} credits to upgrade.`);
-    return;
-  }
-
-  state.credits -= cost;
-  cell.level += 1;
-  state.maxFactoryLevel = Math.max(state.maxFactoryLevel, cell.level);
-  updateCounts();
-  evaluateTasks();
-  setStatus(`${cell.type} upgraded to Lv ${cell.level}.`);
-}
-
-function getPowerStats() {
-  let cap = 0;
-  let used = 0;
-
-  for (const row of grid) {
-    for (const cell of row) {
-      if (cell.type === TYPES.POWER) cap += 20 + cell.level * 10;
-      if (cell.type === TYPES.DROPPER) used += 2;
-      if (cell.type === TYPES.CORE) used += 3;
-      if (cell.type === TYPES.CONVEYOR) used += 1;
-      if (cell.type === TYPES.BANK) used += 2;
-    }
-  }
-
-  return { cap, used };
-}
-
-function updateCounts() {
-  state.count = { road: 0, power: 0, dropper: 0, core: 0, conveyor: 0, bank: 0 };
-  state.maxFactoryLevel = 1;
-
-  for (const row of grid) {
-    for (const cell of row) {
-      if (cell.type === TYPES.ROAD) state.count.road += 1;
-      if (cell.type === TYPES.POWER) state.count.power += 1;
-      if (cell.type === TYPES.DROPPER) state.count.dropper += 1;
-      if (cell.type === TYPES.CORE) state.count.core += 1;
-      if (cell.type === TYPES.CONVEYOR) state.count.conveyor += 1;
-      if (cell.type === TYPES.BANK) state.count.bank += 1;
-      if (cell.type !== TYPES.EMPTY && cell.type !== TYPES.ROAD) {
-        state.maxFactoryLevel = Math.max(state.maxFactoryLevel, cell.level);
-      }
-    }
-  }
-
-  recalcClickValue();
-}
-
-function calcFactoryEconomy() {
-  let dropperOutput = 0;
-  let conveyorBoost = 1;
-  let coreBoost = 1;
-  let bankBoost = 1;
-  let relayFlatBonus = 0;
-  let interestRate = 0;
-  let upkeepDiscount = 0;
-
-  for (let y = 0; y < WORLD_H; y += 1) {
-    for (let x = 0; x < WORLD_W; x += 1) {
-      const cell = grid[y][x];
-      if (cell.type === TYPES.CONVEYOR) conveyorBoost += 0.03 * cell.level;
-      if (cell.type === TYPES.CORE) coreBoost += 0.08 * cell.level;
-      if (cell.type === TYPES.BANK) {
-        bankBoost += 0.06 * cell.level;
-        interestRate += 0.003 * cell.level;
-        upkeepDiscount += 0.35 * cell.level;
-      }
-      if (cell.type === TYPES.POWER) relayFlatBonus += 0.7 * cell.level;
-      if (cell.type === TYPES.DROPPER) {
-        const base = cell.level * (1 + (cell.level - 1) * 0.2);
-        const localBoost = hasAdjacentConveyor(x, y) ? 1.3 : 1;
-        const roadBoost = hasAdjacentType(x, y, TYPES.ROAD) ? 1.1 : 1;
-        const powerBoost = hasAdjacentType(x, y, TYPES.POWER) ? 1.08 : 1;
-        dropperOutput += base * localBoost * roadBoost * powerBoost;
-      }
-    }
-  }
-
-  const income = Math.floor(dropperOutput * conveyorBoost * coreBoost * bankBoost + relayFlatBonus);
-  const interest = Math.floor(state.credits * Math.min(interestRate, 0.08));
-  return { income, interest, upkeepDiscount };
-}
-
-function updateEconomy() {
-  updateCounts();
-  const p = getPowerStats();
-  const powerRatio = p.used === 0 ? 1 : Math.min(1, p.cap / p.used);
-  const powerFactor = 0.45 + powerRatio * 0.55;
-
-  const factory = calcFactoryEconomy();
-  state.factoryIncome = Math.floor((factory.income + factory.interest) * powerFactor);
-  if (state.count.dropper > 0 && state.factoryIncome <= 0) {
-    // Droppers should always yield something in the base loop.
-    state.factoryIncome = Math.max(1, state.count.dropper);
-  }
-  state.passivePerCycle = state.factoryIncome;
-
-  // Upkeep is intentionally disabled for core-loop prototyping.
-  state.netPerCycle = state.factoryIncome;
-  state.credits = clampNumber(state.credits + state.netPerCycle, 0, MAX_CREDITS);
-
-  state.cycle += 1;
-  ui.clock.textContent = `Cycle ${state.cycle}`;
-  evaluateTasks();
+function claimTask(index) {
+  const task = tasks[index];
+  if (!task || !task.done || task.claimed) return;
+  task.claimed = true;
+  state.credits = clampNumber(state.credits + task.reward);
+  setStatus(`Task claimed: +${task.reward} credits.`);
+  renderTasks();
 }
 
 function evaluateTasks() {
@@ -434,31 +196,43 @@ function evaluateTasks() {
   if (changed) renderTasks();
 }
 
-function claimTask(index) {
-  const task = tasks[index];
-  if (!task || !task.done || task.claimed) return;
-  task.claimed = true;
-  state.credits += task.reward;
-  setStatus(`Task claimed: +${task.reward} credits.`);
-  renderTasks();
+function harvestCredits() {
+  updateCounts();
+  const gain = Math.max(1, state.clickValue);
+  state.credits = clampNumber(state.credits + gain);
+  if (Math.random() < 0.2) {
+    setStatus(`Harvested +${gain} credits.`);
+  }
 }
 
-function clickCore() {
+function calcNetPerCycle() {
+  let dropperBase = 0;
+  for (let y = 0; y < WORLD_H; y += 1) {
+    for (let x = 0; x < WORLD_W; x += 1) {
+      const cell = grid[y][x];
+      if (cell.type !== TYPES.DROPPER) continue;
+      const roadBoost = hasAdjacentRoad(x, y) ? 1.15 : 1;
+      dropperBase += 2 * roadBoost;
+    }
+  }
+
+  const coreMultiplier = 1 + state.count.core * 0.2;
+  const value = Math.floor(dropperBase * coreMultiplier);
+  state.netPerCycle = state.count.dropper > 0 ? Math.max(1, value) : 0;
+}
+
+function updateEconomy() {
   updateCounts();
-  const gain = Math.max(1, Math.floor(state.clickValue));
-  state.credits = clampNumber(state.credits + gain, 0, MAX_CREDITS);
-  state.totalTaps += 1;
-  updateUI();
-  if (state.totalTaps % 6 === 0) setStatus(`Harvested +${gain} credits.`);
+  calcNetPerCycle();
+  state.credits = clampNumber(state.credits + state.netPerCycle);
+  evaluateTasks();
 }
 
 function updateCamera() {
   const targetX = state.player.x * TILE - canvas.width / 2 + TILE / 2;
   const targetY = state.player.y * TILE - canvas.height / 2 + TILE / 2;
-
   const maxX = WORLD_W * TILE - canvas.width;
   const maxY = WORLD_H * TILE - canvas.height;
-
   state.camera.x = Math.max(0, Math.min(maxX, targetX));
   state.camera.y = Math.max(0, Math.min(maxY, targetY));
 }
@@ -466,7 +240,6 @@ function updateCamera() {
 function drawTile(x, y, cell) {
   const px = x * TILE - state.camera.x;
   const py = y * TILE - state.camera.y;
-
   if (px > canvas.width || py > canvas.height || px < -TILE || py < -TILE) return;
 
   if (cell.type === TYPES.EMPTY) {
@@ -487,16 +260,6 @@ function drawTile(x, y, cell) {
     return;
   }
 
-  if (cell.type === TYPES.CONVEYOR) {
-    ctx.fillStyle = "#6e5c90";
-    ctx.fillRect(px + 2, py + 2, TILE - 4, TILE - 4);
-    ctx.fillStyle = "#bca9e6";
-    ctx.fillRect(px + 8, py + 20, TILE - 16, 7);
-    ctx.fillStyle = "#ece6ff";
-    ctx.fillRect(px + 14, py + 11, 6, 5);
-    ctx.fillRect(px + 24, py + 11, 6, 5);
-  }
-
   if (cell.type === TYPES.DROPPER) {
     ctx.fillStyle = "#556779";
     ctx.fillRect(px + 3, py + 3, TILE - 6, TILE - 6);
@@ -505,6 +268,7 @@ function drawTile(x, y, cell) {
     ctx.fillRect(px + 18, py + 18, 10, 14);
     ctx.fillStyle = "#ecfbff";
     ctx.fillRect(px + 19, py + 34, 8, 8);
+    return;
   }
 
   if (cell.type === TYPES.CORE) {
@@ -516,29 +280,6 @@ function drawTile(x, y, cell) {
     ctx.fillRect(px + 18, py + 12, 10, 9);
     ctx.fillStyle = "#bdfdff";
     ctx.fillRect(px + 17, py + 27, 12, 12);
-  }
-
-  if (cell.type === TYPES.POWER) {
-    ctx.fillStyle = "#457069";
-    ctx.fillRect(px + 3, py + 3, TILE - 6, TILE - 6);
-    ctx.fillStyle = "#b8fff6";
-    ctx.fillRect(px + 21, py + 8, 6, TILE - 16);
-    ctx.fillRect(px + 15, py + 15, 18, 5);
-  }
-
-  if (cell.type === TYPES.BANK) {
-    ctx.fillStyle = "#8a6f3d";
-    ctx.fillRect(px + 3, py + 3, TILE - 6, TILE - 6);
-    ctx.fillStyle = "#f4d694";
-    ctx.fillRect(px + 10, py + 13, TILE - 20, 16);
-    ctx.fillStyle = "#fff4cd";
-    ctx.fillRect(px + 13, py + 17, TILE - 26, 8);
-  }
-
-  if (cell.type !== TYPES.EMPTY && cell.type !== TYPES.ROAD) {
-    ctx.fillStyle = "#1a1a1a";
-    ctx.font = "12px Rajdhani";
-    ctx.fillText(`L${cell.level}`, px + 3, py + 14);
   }
 }
 
@@ -588,26 +329,14 @@ function render() {
 }
 
 function updateUI() {
-  const p = getPowerStats();
-
-  state.credits = clampNumber(state.credits, 0, MAX_CREDITS);
-  state.factoryIncome = clampNumber(state.factoryIncome, 0, MAX_CREDITS);
-  state.passivePerCycle = clampNumber(state.passivePerCycle, 0, MAX_CREDITS);
-  state.netPerCycle = clampNumber(state.netPerCycle, -MAX_CREDITS, MAX_CREDITS);
-
   ui.credits.textContent = Math.floor(state.credits).toString();
-  ui.power.textContent = `${p.used} / ${p.cap}`;
-  ui.factoryRate.textContent = state.factoryIncome.toString();
-  ui.netRate.textContent = state.netPerCycle.toString();
-  ui.tapValue.textContent = Math.floor(state.clickValue).toString();
-  ui.passiveRate.textContent = state.passivePerCycle.toString();
-
+  ui.netRate.textContent = Math.floor(state.netPerCycle).toString();
   ui.dropperCount.textContent = state.count.dropper.toString();
   ui.coreCount.textContent = state.count.core.toString();
-  ui.conveyorCount.textContent = state.count.conveyor.toString();
+  ui.tapValue.textContent = state.clickValue.toString();
 
   if (performance.now() > state.statusUntil) {
-    ui.status.textContent = "Build droppers, cores, conveyors, power relays, and banks. Reinvest every cycle.";
+    ui.status.textContent = "Build roads, then place droppers and cores. Harvest and reinvest.";
   }
 }
 
@@ -701,14 +430,9 @@ window.addEventListener("keydown", (e) => {
     return;
   }
 
-  if (key === "e") {
-    if (!e.repeat) interactTile();
-    return;
-  }
-
-  const movement = keyToMove(key);
-  if (movement) {
-    if (!e.repeat) attemptMove(movement.dx, movement.dy);
+  const move = keyToMove(key);
+  if (move) {
+    if (!e.repeat) attemptMove(move.dx, move.dy);
     return;
   }
 
@@ -725,10 +449,8 @@ window.addEventListener("keydown", (e) => {
   }
 });
 
-ui.coreButton.addEventListener("click", clickCore);
+ui.coreButton.addEventListener("click", harvestCredits);
 
-setupTabs();
-setupCycleToggle();
 seedStarterRoads();
 updateCounts();
 renderPalette();

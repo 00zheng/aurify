@@ -18,83 +18,52 @@
       <header class="topbar">
         <div>
           <h1>Neon Skyline Tycoon</h1>
-          <p>Grow from one dropper into a high-output futuristic factory city.</p>
-        </div>
-        <div class="topbar-right">
-          <div class="meta" id="clock">Cycle 1</div>
-          <button class="tab-btn" id="toggle-cycle" type="button">Hide Cycle</button>
-          <div class="tabs" role="tablist" aria-label="Main tabs">
-            <button class="tab-btn active" id="tab-game" data-tab="game" role="tab" aria-selected="true">Game</button>
-            <button class="tab-btn" id="tab-how" data-tab="how" role="tab" aria-selected="false">How To Play</button>
-          </div>
+          <p>Minimal prototype: roads, droppers, cores, credits, and tasks.</p>
         </div>
       </header>
 
-      <section class="tab-panel active" id="panel-game" role="tabpanel" aria-labelledby="tab-game">
-        <section class="game-wrap">
-          <canvas id="game" width="1280" height="768" aria-label="game canvas"></canvas>
+      <section class="game-wrap">
+        <canvas id="game" width="1280" height="768" aria-label="game canvas"></canvas>
 
-          <aside class="hud">
-            <div class="card compact">
-              <h2>Tycoon Stats</h2>
-              <ul>
-                <li><span>Credits</span><strong id="credits">0</strong></li>
-                <li><span>Power</span><strong id="power">0 / 0</strong></li>
-                <li><span>Factory / cycle</span><strong id="factory-rate">0</strong></li>
-                <li><span>Net / cycle</span><strong id="net-rate">0</strong></li>
-              </ul>
-            </div>
+        <aside class="hud">
+          <div class="card compact">
+            <h2>Tycoon Stats</h2>
+            <ul>
+              <li><span>Credits</span><strong id="credits">0</strong></li>
+              <li><span>Net / cycle</span><strong id="net-rate">0</strong></li>
+              <li><span>Droppers</span><strong id="dropper-count">0</strong></li>
+              <li><span>Fusion Cores</span><strong id="core-count">0</strong></li>
+              <li><span>Click Gain</span><strong id="tap-value">1</strong></li>
+            </ul>
+          </div>
 
-            <div class="card compact">
-              <h2>Build Palette</h2>
-              <ul class="palette" id="palette"></ul>
-              <p class="tip">Use <kbd>1</kbd>-<kbd>6</kbd> to choose, <kbd>Space</kbd> to build.</p>
-            </div>
+          <div class="card compact">
+            <h2>Build Palette</h2>
+            <ul class="palette" id="palette"></ul>
+            <p class="tip">Use <kbd>1</kbd>-<kbd>3</kbd> to choose, <kbd>Space</kbd> to build.</p>
+          </div>
 
-            <div class="card compact">
-              <h2>Factory Interaction</h2>
-              <ul>
-                <li><span>Droppers</span><strong id="dropper-count">0</strong></li>
-                <li><span>Fusion Cores</span><strong id="core-count">0</strong></li>
-                <li><span>Conveyor Nodes</span><strong id="conveyor-count">0</strong></li>
-                <li><span>Passive / cycle</span><strong id="passive-rate">0</strong></li>
-                <li><span>Core Tap Value</span><strong id="tap-value">1</strong></li>
-              </ul>
-              <button id="core-click" class="core-button">Harvest Credits (Fallback)</button>
-            </div>
+          <div class="card compact">
+            <h2>Harvest</h2>
+            <button id="core-click" class="core-button">Harvest Credits</button>
+            <p class="tip">Cores increase click gain and passive output.</p>
+          </div>
 
-            <div class="card compact">
-              <h2>Controls</h2>
-              <ul>
-                <li>Move Mayor Drone: <kbd>Arrow Keys</kbd> or <kbd>WASD</kbd></li>
-                <li>Build on highlighted tile: <kbd>Space</kbd></li>
-                <li>Bulldoze tile: <kbd>X</kbd></li>
-                <li>Use building under drone: <kbd>E</kbd></li>
-                <li>Pause: <kbd>P</kbd></li>
-              </ul>
-            </div>
+          <div class="card compact">
+            <h2>Controls</h2>
+            <ul>
+              <li>Move: <kbd>Arrow Keys</kbd> or <kbd>WASD</kbd></li>
+              <li>Build: <kbd>Space</kbd></li>
+              <li>Bulldoze: <kbd>X</kbd></li>
+              <li>Pause: <kbd>P</kbd></li>
+            </ul>
+          </div>
 
-            <div class="card compact">
-              <h2>Tasks</h2>
-              <ol id="objectives" class="tasks"></ol>
-            </div>
-          </aside>
-        </section>
-      </section>
-
-      <section class="tab-panel" id="panel-how" role="tabpanel" aria-labelledby="tab-how" hidden>
-        <div class="card howto-card">
-          <h2>How To Play</h2>
-          <ol class="howto-list">
-            <li>Build Money Droppers and Fusion Cores directly on the map using the Build Palette.</li>
-            <li>Add Conveyors and Battery Relays to speed production and support power demand.</li>
-            <li>Stand on a Dropper, Core, Conveyor, or Battery Relay and press <kbd>E</kbd> to upgrade it.</li>
-            <li>Click Harvest Credits or stand on a Fusion Core and press <kbd>E</kbd> for active boosts.</li>
-            <li>Complete tasks and claim rewards to accelerate progression.</li>
-            <li>Reinvest constantly for compounding growth. Credits never go below 0.</li>
-          </ol>
-          <p class="tip">Core tycoon loop: passive income -> reinvestment -> faster production -> bigger unlocks.</p>
-        </div>
+          <div class="card compact">
+            <h2>Tasks</h2>
+            <ol id="objectives" class="tasks"></ol>
+          </div>
+        </aside>
       </section>
 
       <footer class="status" id="status">Welcome to your floating district.</footer>
