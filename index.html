@@ -22,6 +22,7 @@
         </div>
         <div class="topbar-right">
           <div class="meta" id="clock">Cycle 1</div>
+          <button class="tab-btn" id="toggle-cycle" type="button">Hide Cycle</button>
           <div class="tabs" role="tablist" aria-label="Main tabs">
             <button class="tab-btn active" id="tab-game" data-tab="game" role="tab" aria-selected="true">Game</button>
             <button class="tab-btn" id="tab-how" data-tab="how" role="tab" aria-selected="false">How To Play</button>
@@ -35,22 +36,19 @@
 
           <aside class="hud">
             <div class="card compact">
-              <h2>City Stats</h2>
+              <h2>Tycoon Stats</h2>
               <ul>
                 <li><span>Credits</span><strong id="credits">0</strong></li>
-                <li><span>Population</span><strong id="population">0</strong></li>
-                <li><span>Happiness</span><strong id="happiness">0%</strong></li>
                 <li><span>Power</span><strong id="power">0 / 0</strong></li>
-                <li><span>Pollution</span><strong id="pollution">0</strong></li>
-                <li><span>Demand</span><strong id="demand">0 / 0 / 0</strong></li>
                 <li><span>Factory / cycle</span><strong id="factory-rate">0</strong></li>
+                <li><span>Net / cycle</span><strong id="net-rate">0</strong></li>
               </ul>
             </div>
 
             <div class="card compact">
               <h2>Build Palette</h2>
               <ul class="palette" id="palette"></ul>
-              <p class="tip">Use <kbd>1</kbd>-<kbd>8</kbd> to choose, <kbd>Space</kbd> to build.</p>
+              <p class="tip">Use <kbd>1</kbd>-<kbd>6</kbd> to choose, <kbd>Space</kbd> to build.</p>
             </div>
 
             <div class="card compact">
@@ -88,11 +86,11 @@
         <div class="card howto-card">
           <h2>How To Play</h2>
           <ol class="howto-list">
-            <li>Build Droppers and Fusion Cores directly on the map using the Build Palette.</li>
-            <li>Stand on a Dropper, Core, or Conveyor and press <kbd>E</kbd> to upgrade it.</li>
-            <li>Click Harvest Credits or use a Fusion Core for active cash boosts.</li>
-            <li>Build roads, housing, commerce, and industry to stack city income on top.</li>
-            <li>Complete tasks and claim rewards to jump into mid-game faster.</li>
+            <li>Build Money Droppers and Fusion Cores directly on the map using the Build Palette.</li>
+            <li>Add Conveyors and Battery Relays to speed production and support power demand.</li>
+            <li>Stand on a Dropper, Core, Conveyor, or Battery Relay and press <kbd>E</kbd> to upgrade it.</li>
+            <li>Click Harvest Credits or stand on a Fusion Core and press <kbd>E</kbd> for active boosts.</li>
+            <li>Complete tasks and claim rewards to accelerate progression.</li>
             <li>Reinvest constantly for compounding growth. Credits never go below 0.</li>
           </ol>
           <p class="tip">Core tycoon loop: passive income -> reinvestment -> faster production -> bigger unlocks.</p>
