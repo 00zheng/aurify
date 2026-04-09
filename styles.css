@@ -1,11 +1,11 @@
 :root {
-  --bg0: #1b2f1a;
-  --bg1: #274425;
-  --bg2: #395a2f;
-  --panel: #f2d7a5;
-  --panel-dark: #d8b67f;
-  --panel-border: #7f5e37;
-  --accent: #58b368;
+  --bg0: #2f4f28;
+  --bg1: #4a6f31;
+  --bg2: #6f8f48;
+  --panel: #f5dfb2;
+  --panel-dark: #d9b880;
+  --panel-border: #84633c;
+  --accent: #65b96b;
   --warn: #d69231;
   --danger: #cb4a3e;
   --text: #2d2518;
@@ -20,7 +20,10 @@ html,
 body {
   margin: 0;
   min-height: 100%;
-  background: radial-gradient(circle at 50% 10%, #5e7d40, var(--bg2) 40%, var(--bg0));
+  background:
+    radial-gradient(circle at 15% 8%, #ccefa0 0%, rgba(204, 239, 160, 0) 34%),
+    radial-gradient(circle at 82% 18%, #96cf7a 0%, rgba(150, 207, 122, 0) 40%),
+    linear-gradient(180deg, var(--bg2), var(--bg1) 45%, var(--bg0));
   color: var(--text);
   font-family: "Rajdhani", sans-serif;
 }
@@ -30,17 +33,18 @@ body {
   inset: 0;
   pointer-events: none;
   background-image:
-    linear-gradient(transparent 95%, rgba(255, 255, 255, 0.08) 95%),
-    linear-gradient(90deg, transparent 95%, rgba(255, 255, 255, 0.08) 95%);
-  background-size: 40px 40px;
-  opacity: 0.22;
+    radial-gradient(rgba(255, 255, 255, 0.22) 1px, transparent 1px),
+    radial-gradient(rgba(255, 255, 255, 0.13) 1px, transparent 1px);
+  background-size: 34px 34px, 55px 55px;
+  background-position: 0 0, 17px 13px;
+  opacity: 0.16;
 }
 
 .layout {
   position: relative;
   max-width: 1700px;
   margin: 0 auto;
-  padding: 12px;
+  padding: 14px;
 }
 
 .topbar {
@@ -81,15 +85,15 @@ h2 {
 }
 
 h1 {
-  font-size: 0.9rem;
-  color: #fef6d7;
-  text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.2);
+  font-size: 1rem;
+  color: #fff7dc;
+  text-shadow: 2px 2px 0 rgba(49, 35, 16, 0.35);
 }
 
 .topbar p {
   margin: 4px 0 0;
-  color: #e4d5b5;
-  font-size: 0.96rem;
+  color: #f0e3c6;
+  font-size: 1rem;
 }
 
 .meta {
@@ -136,7 +140,7 @@ h1 {
 .game-wrap {
   display: grid;
   grid-template-columns: minmax(880px, 1fr) 300px;
-  gap: 10px;
+  gap: 12px;
   align-items: start;
 }
 
@@ -145,24 +149,31 @@ h1 {
   height: auto;
   max-height: 80vh;
   image-rendering: pixelated;
-  border-radius: 8px;
-  border: 4px solid #7a5630;
-  box-shadow: 0 7px 0 rgba(66, 44, 24, 0.35);
-  background: #355a2e;
+  border-radius: 12px;
+  border: 5px solid #6f4d2a;
+  box-shadow:
+    0 12px 0 rgba(66, 44, 24, 0.32),
+    0 0 0 4px rgba(250, 225, 167, 0.16),
+    0 28px 42px rgba(18, 34, 14, 0.33);
+  background: #5f8f3f;
 }
 
 .hud {
   display: grid;
-  gap: 8px;
+  gap: 10px;
   align-content: start;
 }
 
 .card {
-  background: var(--panel);
+  background:
+    linear-gradient(180deg, rgba(255, 247, 225, 0.45), rgba(255, 247, 225, 0) 32%),
+    var(--panel);
   border: 2px solid var(--panel-border);
-  border-radius: 7px;
-  padding: 9px;
-  box-shadow: inset 0 -4px 0 rgba(84, 58, 31, 0.2);
+  border-radius: 10px;
+  padding: 10px;
+  box-shadow:
+    inset 0 -5px 0 rgba(84, 58, 31, 0.2),
+    0 6px 14px rgba(39, 28, 12, 0.22);
 }
 
 .card.compact {
@@ -170,8 +181,8 @@ h1 {
 }
 
 .card h2 {
-  font-size: 0.56rem;
-  margin-bottom: 7px;
+  font-size: 0.58rem;
+  margin-bottom: 8px;
   color: #5c3c21;
 }
 
@@ -188,8 +199,8 @@ h1 {
   align-items: center;
   gap: 8px;
   padding: 4px 0;
-  border-bottom: 1px dashed rgba(90, 62, 33, 0.22);
-  font-size: 0.92rem;
+  border-bottom: 1px dashed rgba(90, 62, 33, 0.2);
+  font-size: 0.95rem;
 }
 
 .card li:last-child {
@@ -204,17 +215,18 @@ h1 {
 .palette li {
   cursor: pointer;
   border: 1px solid rgba(96, 68, 40, 0.45);
-  border-radius: 6px;
-  padding: 5px;
-  transition: 130ms ease;
-  background: rgba(255, 245, 220, 0.42);
+  border-radius: 8px;
+  padding: 6px;
+  transition: 140ms ease;
+  background: rgba(255, 245, 220, 0.62);
   font-size: 0.9rem;
 }
 
 .palette li.active,
 .palette li:hover {
-  border-color: #588f44;
-  background: rgba(143, 202, 99, 0.3);
+  border-color: #4e8d3b;
+  background: rgba(158, 218, 112, 0.45);
+  transform: translateY(-1px);
 }
 
 .tip {
@@ -226,15 +238,15 @@ h1 {
 .core-button {
   width: 100%;
   border: 2px solid #5b3a1d;
-  border-radius: 6px;
-  background: linear-gradient(180deg, #9af5ff, #54c5e0);
+  border-radius: 8px;
+  background: linear-gradient(180deg, #98f3ff, #4caec8);
   color: #17313a;
   font-family: "Press Start 2P", cursive;
   font-size: 0.52rem;
   padding: 8px 7px;
   margin-bottom: 6px;
   cursor: pointer;
-  box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.2);
+  box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.2), 0 4px 10px rgba(40, 79, 93, 0.3);
 }
 
 .core-button:active {
@@ -305,12 +317,13 @@ kbd {
 }
 
 .status {
-  margin-top: 8px;
-  padding: 8px 10px;
-  border-radius: 7px;
+  margin-top: 10px;
+  padding: 9px 11px;
+  border-radius: 10px;
   background: #f0d59d;
   border: 2px solid #7d5a31;
   min-height: 36px;
+  box-shadow: 0 5px 12px rgba(47, 34, 16, 0.2);
 }
 
 @media (max-width: 1180px) {

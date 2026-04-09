@@ -89,6 +89,17 @@ const grid = Array.from({ length: WORLD_H }, () =>
   }))
 );
 
+const terrain = Array.from({ length: WORLD_H }, (_, y) =>
+  Array.from({ length: WORLD_W }, (_, x) => {
+    const n = hash2D(x, y);
+    return {
+      biome: n > 0.74 ? "dry" : n < 0.22 ? "lush" : "plain",
+      speckle: hash2D(x + 91, y + 47),
+      tuft: hash2D(x + 17, y + 133)
+    };
+  })
+);
+
 let saveIndicatorTimer;
 
 function showSaveIndicator(text, variant = "saved") {
@@ -219,6 +230,11 @@ function resetGame() {
 function clampNumber(n, min = 0, max = MAX_CREDITS) {
   if (!Number.isFinite(n) || Number.isNaN(n)) return min;
   return Math.max(min, Math.min(max, n));
+}
+
+function hash2D(x, y) {
+  const v = Math.sin(x * 127.1 + y * 311.7) * 43758.5453;
+  return v - Math.floor(v);
 }
 
 function inBounds(x, y) {
@@ -377,56 +393,104 @@ function drawTile(x, y, cell) {
   const py = y * TILE - state.camera.y;
   if (px > canvas.width || py > canvas.height || px < -TILE || py < -TILE) return;
 
+  const t = terrain[y][x];
+
+  // Base terrain pass intentionally paints full tiles (no -1 gap) to avoid visible block seams.
+  if (t.biome === "lush") {
+    ctx.fillStyle = "#67a451";
+  } else if (t.biome === "dry") {
+    ctx.fillStyle = "#8da64d";
+  } else {
+    ctx.fillStyle = "#74a955";
+  }
+  ctx.fillRect(px, py, TILE, TILE);
+
+  const tone = 0.06 + t.speckle * 0.08;
+  ctx.fillStyle = `rgba(255, 255, 255, ${tone})`;
+  ctx.fillRect(px + 4, py + 4, TILE - 10, TILE - 10);
+
+  ctx.fillStyle = `rgba(34, 83, 30, ${0.08 + t.tuft * 0.16})`;
+  ctx.fillRect(px + 8, py + 10, 3, 4);
+  ctx.fillRect(px + 18, py + 24, 3, 4);
+  ctx.fillRect(px + 31, py + 15, 3, 4);
+
   if (cell.type === TYPES.EMPTY) {
-    ctx.fillStyle = "#4f7a42";
-    ctx.fillRect(px, py, TILE - 1, TILE - 1);
-    ctx.fillStyle = "rgba(142, 214, 113, 0.14)";
-    ctx.fillRect(px + 6, py + 6, TILE - 12, TILE - 12);
     return;
   }
 
   if (cell.type === TYPES.ROAD) {
-    ctx.fillStyle = "#b9a37a";
-    ctx.fillRect(px, py, TILE - 1, TILE - 1);
-    ctx.fillStyle = "#98835f";
-    for (let yy = 3; yy < TILE; yy += 8) {
-      ctx.fillRect(px + 3, py + yy, TILE - 8, 2);
-    }
+    ctx.fillStyle = "#c79a58";
+    ctx.fillRect(px, py, TILE, TILE);
+    ctx.fillStyle = "rgba(109, 76, 40, 0.24)";
+    ctx.fillRect(px + 2, py + 6, TILE - 4, 4);
+    ctx.fillRect(px + 4, py + 18, TILE - 8, 3);
+    ctx.fillRect(px + 3, py + 29, TILE - 6, 4);
+    ctx.fillRect(px + 5, py + 39, TILE - 10, 3);
     return;
   }
 
   if (cell.type === TYPES.DROPPER) {
-    ctx.fillStyle = "#556779";
-    ctx.fillRect(px + 3, py + 3, TILE - 6, TILE - 6);
-    ctx.fillStyle = "#77e2ff";
-    ctx.fillRect(px + 14, py + 8, 18, 8);
-    ctx.fillRect(px + 18, py + 18, 10, 14);
-    ctx.fillStyle = "#ecfbff";
-    ctx.fillRect(px + 19, py + 34, 8, 8);
+    ctx.fillStyle = "rgba(31, 41, 58, 0.35)";
+    ctx.beginPath();
+    ctx.ellipse(px + 29, py + 41, 16, 7, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = "#49627d";
+    ctx.fillRect(px + 10, py + 15, 26, 22);
+    ctx.fillStyle = "#354962";
+    ctx.fillRect(px + 12, py + 37, 22, 6);
+
+    ctx.fillStyle = "#8ff0ff";
+    ctx.fillRect(px + 13, py + 17, 20, 6);
+    ctx.fillStyle = "#dbfdff";
+    ctx.fillRect(px + 22, py + 24, 4, 10);
+
+    ctx.fillStyle = "#caedff";
+    ctx.fillRect(px + 19, py + 30, 10, 9);
     return;
   }
 
   if (cell.type === TYPES.CORE) {
-    ctx.fillStyle = "#5f4f78";
-    ctx.fillRect(px + 3, py + 3, TILE - 6, TILE - 6);
-    ctx.fillStyle = "#ff95f3";
-    ctx.fillRect(px + 15, py + 8, 16, 16);
-    ctx.fillStyle = "#ffe9fd";
-    ctx.fillRect(px + 18, py + 12, 10, 9);
-    ctx.fillStyle = "#bdfdff";
-    ctx.fillRect(px + 17, py + 27, 12, 12);
+    ctx.fillStyle = "rgba(44, 24, 64, 0.34)";
+    ctx.beginPath();
+    ctx.ellipse(px + 25, py + 41, 15, 7, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = "#6f4b93";
+    ctx.fillRect(px + 11, py + 14, 24, 24);
+    ctx.fillStyle = "#5a3e76";
+    ctx.fillRect(px + 13, py + 38, 20, 6);
+
+    ctx.fillStyle = "#ff93ea";
+    ctx.beginPath();
+    ctx.moveTo(px + 23, py + 18);
+    ctx.lineTo(px + 31, py + 24);
+    ctx.lineTo(px + 25, py + 33);
+    ctx.lineTo(px + 17, py + 25);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.fillStyle = "#e9d7ff";
+    ctx.fillRect(px + 22, py + 22, 5, 5);
   }
 }
 
 function drawPlayer() {
   const px = state.player.x * TILE - state.camera.x;
   const py = state.player.y * TILE - state.camera.y;
+  ctx.fillStyle = "rgba(33, 28, 19, 0.35)";
+  ctx.beginPath();
+  ctx.ellipse(px + 23, py + 38, 9, 4, 0, 0, Math.PI * 2);
+  ctx.fill();
+
   ctx.fillStyle = "#2f62aa";
-  ctx.fillRect(px + 16, py + 17, 14, 16);
+  ctx.fillRect(px + 16, py + 18, 14, 15);
   ctx.fillStyle = "#f3c09b";
-  ctx.fillRect(px + 17, py + 11, 12, 7);
+  ctx.fillRect(px + 17, py + 12, 12, 7);
+  ctx.fillStyle = "#9b6c38";
+  ctx.fillRect(px + 15, py + 10, 16, 2);
   ctx.fillStyle = "#533720";
-  ctx.fillRect(px + 17, py + 9, 12, 2);
+  ctx.fillRect(px + 17, py + 8, 12, 2);
 }
 
 function drawHover() {
