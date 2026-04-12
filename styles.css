@@ -259,6 +259,22 @@ h1 {
   font-size: 0.82rem;
 }
 
+.upgrade-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 6px;
+}
+
+.upgrade-meta {
+  font-size: 0.78rem;
+  color: #61462a;
+}
+
+.upgrades .upgrade-button {
+  width: 100%;
+}
+
 .upgrades li {
   display: grid;
   gap: 4px;

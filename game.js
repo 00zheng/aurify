@@ -7,8 +7,17 @@ const ui = {
   dropperCount: document.getElementById("dropper-count"),
   coreCount: document.getElementById("core-count"),
   tapValue: document.getElementById("tap-value"),
+  tokens: document.getElementById("tokens"),
+  relics: document.getElementById("relics"),
+  rebirthPoints: document.getElementById("rebirth-points"),
+  rebirthCount: document.getElementById("rebirth-count"),
   objectives: document.getElementById("objectives"),
   palette: document.getElementById("palette"),
+  dropperUpgrades: document.getElementById("dropper-upgrades"),
+  dungeonButton: document.getElementById("run-dungeon"),
+  dungeonInfo: document.getElementById("dungeon-info"),
+  rebirthButton: document.getElementById("rebirth-btn"),
+  rebirthUpgrades: document.getElementById("rebirth-upgrades"),
   status: document.getElementById("status"),
   coreButton: document.getElementById("core-click"),
   restartButton: document.getElementById("restart-btn"),
@@ -25,13 +34,74 @@ const TYPES = {
   EMPTY: "empty",
   ROAD: "road",
   DROPPER: "dropper",
-  CORE: "core"
+  CORE: "core",
+  REFINERY: "refinery",
+  DUNGEON_GATE: "dungeon_gate",
+  GENERATOR: "generator"
 };
 
 const BUILDINGS = [
   { key: "1", type: TYPES.ROAD, name: "Road", cost: 7, benefit: "Placement support" },
   { key: "2", type: TYPES.DROPPER, name: "Money Dropper", cost: 60, benefit: "Passive income" },
-  { key: "3", type: TYPES.CORE, name: "Fusion Core", cost: 95, benefit: "Click + global boost" }
+  { key: "3", type: TYPES.CORE, name: "Fusion Core", cost: 95, benefit: "Click + global boost" },
+  { key: "4", type: TYPES.REFINERY, name: "Ore Refinery", cost: 220, benefit: "Boosts dropper value" },
+  { key: "5", type: TYPES.GENERATOR, name: "Power Generator", cost: 170, benefit: "Unlocks advanced output" },
+  { key: "6", type: TYPES.DUNGEON_GATE, name: "Dungeon Gate", cost: 260, benefit: "Enables dungeon runs" }
+];
+
+const DROPPER_UPGRADES = [
+  {
+    key: "speed",
+    name: "Overclock",
+    baseCost: 220,
+    maxLevel: 12,
+    info: "More drops per cycle"
+  },
+  {
+    key: "value",
+    name: "Compression",
+    baseCost: 260,
+    maxLevel: 12,
+    info: "Higher base drop value"
+  },
+  {
+    key: "special",
+    name: "Lucky Ore",
+    baseCost: 320,
+    maxLevel: 8,
+    info: "Chance for premium drops"
+  }
+];
+
+const REBIRTH_UPGRADES = [
+  {
+    key: "oreValue",
+    name: "Permanent Ore Value",
+    baseCost: 1,
+    maxLevel: 25,
+    info: "+8% global output per level"
+  },
+  {
+    key: "dropperSpeed",
+    name: "Permanent Dropper Speed",
+    baseCost: 1,
+    maxLevel: 25,
+    info: "+6% dropper speed per level"
+  },
+  {
+    key: "lootChance",
+    name: "Dungeon Loot Mastery",
+    baseCost: 1,
+    maxLevel: 20,
+    info: "+2% relic chance per level"
+  },
+  {
+    key: "offlineGain",
+    name: "Tap Amplifier",
+    baseCost: 1,
+    maxLevel: 20,
+    info: "+1 click gain per level"
+  }
 ];
 
 const tasks = [
@@ -66,6 +136,22 @@ const tasks = [
     claimed: false,
     check: (s) => s.credits >= 3000,
     progress: (s) => `${Math.min(Math.floor(s.credits), 3000)}/3000`
+  },
+  {
+    text: "Complete 3 dungeon runs",
+    reward: 700,
+    done: false,
+    claimed: false,
+    check: (s) => s.dungeon.runs >= 3,
+    progress: (s) => `${Math.min(s.dungeon.runs, 3)}/3`
+  },
+  {
+    text: "Rebirth once",
+    reward: 950,
+    done: false,
+    claimed: false,
+    check: (s) => s.rebirthCount >= 1,
+    progress: (s) => `${Math.min(s.rebirthCount, 1)}/1`
   }
 ];
 
@@ -76,10 +162,17 @@ const state = {
   paused: false,
   player: { x: 45, y: 45 },
   camera: { x: 0, y: 0 },
-  count: { road: 0, dropper: 0, core: 0 },
+  count: { road: 0, dropper: 0, core: 0, refinery: 0, dungeonGate: 0, generator: 0 },
   clickValue: 1,
   netPerCycle: 0,
-  statusUntil: 0
+  statusUntil: 0,
+  tokens: 0,
+  relics: 0,
+  dropperUpgrades: { speed: 0, value: 0, special: 0 },
+  rebirthPoints: 0,
+  rebirthCount: 0,
+  permanent: { oreValue: 0, dropperSpeed: 0, lootChance: 0, offlineGain: 0 },
+  dungeon: { depth: 1, runs: 0, bestWave: 0, inProgress: false }
 };
 
 const grid = Array.from({ length: WORLD_H }, () =>
@@ -116,7 +209,14 @@ function saveProgress() {
         camera: state.camera,
         clickValue: state.clickValue,
         totalTaps: state.totalTaps,
-        netPerCycle: state.netPerCycle
+        netPerCycle: state.netPerCycle,
+        tokens: state.tokens,
+        relics: state.relics,
+        dropperUpgrades: state.dropperUpgrades,
+        rebirthPoints: state.rebirthPoints,
+        rebirthCount: state.rebirthCount,
+        permanent: state.permanent,
+        dungeon: state.dungeon
       },
       tasks: tasks.map((t) => ({ done: t.done, claimed: t.claimed })),
       grid: grid.map((row) => row.map((c) => ({ type: c.type, level: c.level })))
@@ -152,6 +252,27 @@ function loadProgress() {
     state.clickValue = Number.isFinite(data.state.clickValue) ? data.state.clickValue : 1;
     state.totalTaps = Number.isInteger(data.state.totalTaps) ? data.state.totalTaps : 0;
     state.netPerCycle = Number.isFinite(data.state.netPerCycle) ? data.state.netPerCycle : 0;
+    state.tokens = Number.isFinite(data.state.tokens) ? Math.max(0, Math.floor(data.state.tokens)) : 0;
+    state.relics = Number.isFinite(data.state.relics) ? Math.max(0, Math.floor(data.state.relics)) : 0;
+    state.dropperUpgrades = {
+      speed: Number.isFinite(data.state.dropperUpgrades?.speed) ? Math.max(0, Math.floor(data.state.dropperUpgrades.speed)) : 0,
+      value: Number.isFinite(data.state.dropperUpgrades?.value) ? Math.max(0, Math.floor(data.state.dropperUpgrades.value)) : 0,
+      special: Number.isFinite(data.state.dropperUpgrades?.special) ? Math.max(0, Math.floor(data.state.dropperUpgrades.special)) : 0
+    };
+    state.rebirthPoints = Number.isFinite(data.state.rebirthPoints) ? Math.max(0, Math.floor(data.state.rebirthPoints)) : 0;
+    state.rebirthCount = Number.isFinite(data.state.rebirthCount) ? Math.max(0, Math.floor(data.state.rebirthCount)) : 0;
+    state.permanent = {
+      oreValue: Number.isFinite(data.state.permanent?.oreValue) ? Math.max(0, Math.floor(data.state.permanent.oreValue)) : 0,
+      dropperSpeed: Number.isFinite(data.state.permanent?.dropperSpeed) ? Math.max(0, Math.floor(data.state.permanent.dropperSpeed)) : 0,
+      lootChance: Number.isFinite(data.state.permanent?.lootChance) ? Math.max(0, Math.floor(data.state.permanent.lootChance)) : 0,
+      offlineGain: Number.isFinite(data.state.permanent?.offlineGain) ? Math.max(0, Math.floor(data.state.permanent.offlineGain)) : 0
+    };
+    state.dungeon = {
+      depth: Number.isFinite(data.state.dungeon?.depth) ? Math.max(1, Math.floor(data.state.dungeon.depth)) : 1,
+      runs: Number.isFinite(data.state.dungeon?.runs) ? Math.max(0, Math.floor(data.state.dungeon.runs)) : 0,
+      bestWave: Number.isFinite(data.state.dungeon?.bestWave) ? Math.max(0, Math.floor(data.state.dungeon.bestWave)) : 0,
+      inProgress: false
+    };
 
     for (let y = 0; y < WORLD_H; y += 1) {
       const srcRow = data.grid[y];
@@ -187,10 +308,17 @@ function resetGame() {
     paused: false,
     player: { x: 45, y: 45 },
     camera: { x: 0, y: 0 },
-    count: { road: 0, dropper: 0, core: 0 },
+    count: { road: 0, dropper: 0, core: 0, refinery: 0, dungeonGate: 0, generator: 0 },
     clickValue: 1,
     netPerCycle: 0,
-    statusUntil: 0
+    statusUntil: 0,
+    tokens: 0,
+    relics: 0,
+    dropperUpgrades: { speed: 0, value: 0, special: 0 },
+    rebirthPoints: 0,
+    rebirthCount: 0,
+    permanent: { oreValue: 0, dropperSpeed: 0, lootChance: 0, offlineGain: 0 },
+    dungeon: { depth: 1, runs: 0, bestWave: 0, inProgress: false }
   });
 
   for (let y = 0; y < WORLD_H; y += 1) {
@@ -210,6 +338,8 @@ function resetGame() {
   calcNetPerCycle();
   renderTasks();
   renderPalette();
+  renderDropperUpgrades();
+  renderRebirthUpgrades();
   updateUI();
   saveProgress();
   setStatus("Progress restarted.");
@@ -256,15 +386,18 @@ function hasAdjacentRoad(x, y) {
 }
 
 function updateCounts() {
-  state.count = { road: 0, dropper: 0, core: 0 };
+  state.count = { road: 0, dropper: 0, core: 0, refinery: 0, dungeonGate: 0, generator: 0 };
   for (const row of grid) {
     for (const cell of row) {
       if (cell.type === TYPES.ROAD) state.count.road += 1;
       if (cell.type === TYPES.DROPPER) state.count.dropper += 1;
       if (cell.type === TYPES.CORE) state.count.core += 1;
+      if (cell.type === TYPES.REFINERY) state.count.refinery += 1;
+      if (cell.type === TYPES.DUNGEON_GATE) state.count.dungeonGate += 1;
+      if (cell.type === TYPES.GENERATOR) state.count.generator += 1;
     }
   }
-  state.clickValue = 1 + state.count.core;
+  state.clickValue = 1 + state.count.core + state.permanent.offlineGain;
 }
 
 function buildAt(x, y) {
@@ -289,6 +422,7 @@ function buildAt(x, y) {
   cell.type = choice.type;
   updateCounts();
   evaluateTasks();
+  renderDropperUpgrades();
   saveProgress();
   setStatus(`Built ${choice.name}.`);
 }
@@ -303,6 +437,7 @@ function bulldozeAt(x, y) {
   cell.level = 1;
   updateCounts();
   evaluateTasks();
+  renderDropperUpgrades();
   saveProgress();
   setStatus("Tile cleared.");
 }
@@ -314,7 +449,154 @@ function claimTask(index) {
   state.credits = clampNumber(state.credits + task.reward);
   setStatus(`Task claimed: +${task.reward} credits.`);
   renderTasks();
+  renderDropperUpgrades();
   saveProgress();
+}
+
+function getDropperUpgradeCost(key) {
+  const cfg = DROPPER_UPGRADES.find((u) => u.key === key);
+  if (!cfg) return Infinity;
+  const level = state.dropperUpgrades[key] || 0;
+  return Math.floor(cfg.baseCost * Math.pow(1.42, level));
+}
+
+function buyDropperUpgrade(key) {
+  const cfg = DROPPER_UPGRADES.find((u) => u.key === key);
+  if (!cfg) return;
+  const level = state.dropperUpgrades[key] || 0;
+  if (level >= cfg.maxLevel) {
+    setStatus(`${cfg.name} is maxed.`);
+    return;
+  }
+  const cost = getDropperUpgradeCost(key);
+  if (state.credits < cost) {
+    setStatus("Not enough credits for upgrade.");
+    return;
+  }
+
+  state.credits = clampNumber(state.credits - cost);
+  state.dropperUpgrades[key] = level + 1;
+  calcNetPerCycle();
+  renderDropperUpgrades();
+  saveProgress();
+  setStatus(`${cfg.name} upgraded to ${state.dropperUpgrades[key]}.`);
+}
+
+function getRebirthUpgradeCost(key) {
+  const cfg = REBIRTH_UPGRADES.find((u) => u.key === key);
+  if (!cfg) return Infinity;
+  const level = state.permanent[key] || 0;
+  return cfg.baseCost + level;
+}
+
+function buyRebirthUpgrade(key) {
+  const cfg = REBIRTH_UPGRADES.find((u) => u.key === key);
+  if (!cfg) return;
+  const level = state.permanent[key] || 0;
+  if (level >= cfg.maxLevel) {
+    setStatus(`${cfg.name} is maxed.`);
+    return;
+  }
+  const cost = getRebirthUpgradeCost(key);
+  if (state.rebirthPoints < cost) {
+    setStatus("Not enough rebirth points.");
+    return;
+  }
+
+  state.rebirthPoints -= cost;
+  state.permanent[key] = level + 1;
+  updateCounts();
+  calcNetPerCycle();
+  renderRebirthUpgrades();
+  saveProgress();
+  setStatus(`${cfg.name} upgraded.`);
+}
+
+function getRebirthGain() {
+  return Math.floor(Math.sqrt(Math.max(0, state.credits) / 100000));
+}
+
+function rebirth() {
+  const gain = getRebirthGain();
+  if (gain < 1) {
+    setStatus("Need 100,000 credits to rebirth.");
+    return;
+  }
+
+  state.rebirthPoints += gain;
+  state.rebirthCount += 1;
+
+  state.credits = 320;
+  state.selected = 0;
+  state.ticks = 0;
+  state.player = { x: 45, y: 45 };
+  state.camera = { x: 0, y: 0 };
+  state.dropperUpgrades = { speed: 0, value: 0, special: 0 };
+  state.dungeon.depth = 1;
+
+  for (let y = 0; y < WORLD_H; y += 1) {
+    for (let x = 0; x < WORLD_W; x += 1) {
+      grid[y][x].type = TYPES.EMPTY;
+      grid[y][x].level = 1;
+    }
+  }
+
+  tasks.forEach((task) => {
+    task.done = false;
+    task.claimed = false;
+  });
+
+  seedStarterRoads();
+  updateCounts();
+  calcNetPerCycle();
+  renderPalette();
+  renderTasks();
+  renderDropperUpgrades();
+  renderRebirthUpgrades();
+  saveProgress();
+  setStatus(`Rebirth complete. +${gain} rebirth points.`);
+}
+
+function runDungeon() {
+  if (state.dungeon.inProgress) return;
+  if (state.count.dungeonGate <= 0) {
+    setStatus("Build a Dungeon Gate first.");
+    return;
+  }
+
+  state.dungeon.inProgress = true;
+
+  const basePower =
+    state.count.dropper * 1.8 +
+    state.count.core * 2.3 +
+    state.count.refinery * 2.6 +
+    state.count.generator * 2.1 +
+    state.rebirthCount * 3;
+  const wavePower = basePower + state.dropperUpgrades.speed * 1.2 + state.dropperUpgrades.value * 1.3;
+  const cleared = Math.max(1, Math.floor(2 + wavePower / Math.max(1, state.dungeon.depth * 3)));
+  const clampedWave = Math.min(50, cleared);
+
+  const tokenReward = Math.max(4, Math.floor(clampedWave * (1.2 + state.dungeon.depth * 0.15)));
+  const relicChance = 0.08 + state.permanent.lootChance * 0.02 + state.dropperUpgrades.special * 0.01;
+  const relicFound = Math.random() < relicChance ? 1 : 0;
+  const creditReward = clampedWave * 45;
+
+  state.tokens += tokenReward;
+  state.relics += relicFound;
+  state.credits = clampNumber(state.credits + creditReward);
+  state.dungeon.runs += 1;
+  state.dungeon.bestWave = Math.max(state.dungeon.bestWave, clampedWave);
+  state.dungeon.depth += 1;
+  state.dungeon.inProgress = false;
+
+  evaluateTasks();
+  renderDropperUpgrades();
+  saveProgress();
+  setStatus(
+    `Dungeon cleared to wave ${clampedWave}. +${tokenReward} tokens, +${creditReward} credits${
+      relicFound ? ", +1 relic" : ""
+    }.`
+  );
 }
 
 function evaluateTasks() {
@@ -331,8 +613,10 @@ function evaluateTasks() {
 
 function harvestCredits() {
   updateCounts();
-  const gain = Math.max(1, state.clickValue);
+  const globalBoost = 1 + state.permanent.oreValue * 0.08;
+  const gain = Math.max(1, Math.floor(state.clickValue * globalBoost));
   state.credits = clampNumber(state.credits + gain);
+  renderDropperUpgrades();
   saveProgress();
   if (Math.random() < 0.2) {
     setStatus(`Harvested +${gain} credits.`);
@@ -350,8 +634,13 @@ function calcNetPerCycle() {
     }
   }
 
+  const speedFactor = 1 + state.dropperUpgrades.speed * 0.12 + state.permanent.dropperSpeed * 0.06;
+  const valueFactor = 1 + state.dropperUpgrades.value * 0.17 + state.count.refinery * 0.14;
+  const generatorFactor = state.count.generator > 0 ? 1 + Math.min(0.5, state.count.generator * 0.08) : 0.85;
   const coreMultiplier = 1 + state.count.core * 0.2;
-  const value = Math.floor(dropperBase * coreMultiplier);
+  const permanentFactor = 1 + state.permanent.oreValue * 0.08;
+  const luckyBonus = 1 + state.dropperUpgrades.special * 0.03;
+  const value = Math.floor(dropperBase * speedFactor * valueFactor * generatorFactor * coreMultiplier * permanentFactor * luckyBonus);
   state.netPerCycle = state.count.dropper > 0 ? Math.max(1, value) : 0;
 }
 
@@ -360,6 +649,7 @@ function updateEconomy() {
   calcNetPerCycle();
   state.credits = clampNumber(state.credits + state.netPerCycle);
   evaluateTasks();
+  renderDropperUpgrades();
   saveProgress();
 }
 
@@ -415,6 +705,36 @@ function drawTile(x, y, cell) {
     ctx.fillRect(px + 18, py + 12, 10, 9);
     ctx.fillStyle = "#bdfdff";
     ctx.fillRect(px + 17, py + 27, 12, 12);
+    return;
+  }
+
+  if (cell.type === TYPES.REFINERY) {
+    ctx.fillStyle = "#795a41";
+    ctx.fillRect(px + 3, py + 3, TILE - 6, TILE - 6);
+    ctx.fillStyle = "#ffd07a";
+    ctx.fillRect(px + 9, py + 10, 30, 8);
+    ctx.fillStyle = "#fff0c3";
+    ctx.fillRect(px + 14, py + 22, 20, 14);
+    return;
+  }
+
+  if (cell.type === TYPES.DUNGEON_GATE) {
+    ctx.fillStyle = "#3f365a";
+    ctx.fillRect(px + 3, py + 3, TILE - 6, TILE - 6);
+    ctx.fillStyle = "#9f89ff";
+    ctx.fillRect(px + 12, py + 8, 24, 30);
+    ctx.fillStyle = "#d7ccff";
+    ctx.fillRect(px + 18, py + 15, 12, 16);
+    return;
+  }
+
+  if (cell.type === TYPES.GENERATOR) {
+    ctx.fillStyle = "#365c56";
+    ctx.fillRect(px + 3, py + 3, TILE - 6, TILE - 6);
+    ctx.fillStyle = "#72f2d5";
+    ctx.fillRect(px + 14, py + 9, 18, 18);
+    ctx.fillStyle = "#c8fff2";
+    ctx.fillRect(px + 18, py + 29, 10, 8);
   }
 }
 
@@ -469,6 +789,19 @@ function updateUI() {
   ui.dropperCount.textContent = state.count.dropper.toString();
   ui.coreCount.textContent = state.count.core.toString();
   ui.tapValue.textContent = state.clickValue.toString();
+  if (ui.tokens) ui.tokens.textContent = state.tokens.toString();
+  if (ui.relics) ui.relics.textContent = state.relics.toString();
+  if (ui.rebirthPoints) ui.rebirthPoints.textContent = state.rebirthPoints.toString();
+  if (ui.rebirthCount) ui.rebirthCount.textContent = state.rebirthCount.toString();
+
+  if (ui.dungeonInfo) {
+    ui.dungeonInfo.textContent = `Depth ${state.dungeon.depth} | Best wave ${state.dungeon.bestWave} | Runs ${state.dungeon.runs}`;
+  }
+
+  if (ui.rebirthButton) {
+    const gain = getRebirthGain();
+    ui.rebirthButton.textContent = gain > 0 ? `Rebirth (+${gain} RP)` : "Rebirth (Need 100k)";
+  }
 
   if (performance.now() > state.statusUntil) {
     ui.status.textContent = "Build roads, then place droppers and cores. Harvest and reinvest.";
@@ -515,6 +848,89 @@ function renderPalette() {
       setStatus(`Selected ${b.name}.`);
     });
     ui.palette.appendChild(li);
+  });
+}
+
+function renderDropperUpgrades() {
+  if (!ui.dropperUpgrades) return;
+  ui.dropperUpgrades.innerHTML = "";
+  DROPPER_UPGRADES.forEach((upgrade) => {
+    const level = state.dropperUpgrades[upgrade.key] || 0;
+    const cost = getDropperUpgradeCost(upgrade.key);
+
+    const li = document.createElement("li");
+
+    const row = document.createElement("div");
+    row.className = "upgrade-row";
+
+    const label = document.createElement("span");
+    label.className = "upgrade-label";
+    label.textContent = `${upgrade.name} Lv.${level}/${upgrade.maxLevel}`;
+
+    const meta = document.createElement("span");
+    meta.className = "upgrade-meta";
+    meta.textContent = upgrade.info;
+
+    row.appendChild(label);
+    row.appendChild(meta);
+
+    const button = document.createElement("button");
+    button.className = "upgrade-button";
+
+    if (level >= upgrade.maxLevel) {
+      button.textContent = "Maxed";
+      button.disabled = true;
+    } else {
+      button.textContent = `Buy (${cost})`;
+      button.disabled = state.credits < cost;
+      button.addEventListener("click", () => buyDropperUpgrade(upgrade.key));
+    }
+
+    li.appendChild(row);
+    li.appendChild(button);
+    ui.dropperUpgrades.appendChild(li);
+  });
+}
+
+function renderRebirthUpgrades() {
+  if (!ui.rebirthUpgrades) return;
+  ui.rebirthUpgrades.innerHTML = "";
+
+  REBIRTH_UPGRADES.forEach((upgrade) => {
+    const level = state.permanent[upgrade.key] || 0;
+    const cost = getRebirthUpgradeCost(upgrade.key);
+
+    const li = document.createElement("li");
+
+    const row = document.createElement("div");
+    row.className = "upgrade-row";
+
+    const label = document.createElement("span");
+    label.className = "upgrade-label";
+    label.textContent = `${upgrade.name} Lv.${level}/${upgrade.maxLevel}`;
+
+    const meta = document.createElement("span");
+    meta.className = "upgrade-meta";
+    meta.textContent = upgrade.info;
+
+    row.appendChild(label);
+    row.appendChild(meta);
+
+    const button = document.createElement("button");
+    button.className = "upgrade-button";
+
+    if (level >= upgrade.maxLevel) {
+      button.textContent = "Maxed";
+      button.disabled = true;
+    } else {
+      button.textContent = `Spend ${cost} RP`;
+      button.disabled = state.rebirthPoints < cost;
+      button.addEventListener("click", () => buyRebirthUpgrade(upgrade.key));
+    }
+
+    li.appendChild(row);
+    li.appendChild(button);
+    ui.rebirthUpgrades.appendChild(li);
   });
 }
 
@@ -585,6 +1001,8 @@ window.addEventListener("keydown", (e) => {
 });
 
 if (ui.coreButton) ui.coreButton.addEventListener("click", harvestCredits);
+if (ui.dungeonButton) ui.dungeonButton.addEventListener("click", runDungeon);
+if (ui.rebirthButton) ui.rebirthButton.addEventListener("click", rebirth);
 if (ui.restartButton) {
   ui.restartButton.addEventListener("click", () => {
     if (window.confirm("Restart progress? This will overwrite your current save.")) {
@@ -608,6 +1026,8 @@ if (!loaded) {
 
 renderPalette();
 renderTasks();
+renderDropperUpgrades();
+renderRebirthUpgrades();
 updateUI();
 gameLoop();
 
